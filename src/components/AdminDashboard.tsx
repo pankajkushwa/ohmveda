@@ -609,10 +609,10 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleResetDefaults = () => {
     setDeleteModal({
       isOpen: true,
-      title: 'Reset Catalog Defaults (Cloud Synced)',
-      message: 'Are you sure you want to reset all catalog items, store inventory, categories, and job openings back to sample defaults? This will update cloud storage and sync to all connected mobile & desktop devices.',
+      title: 'Reset Catalog & Content (Cloud Synced)',
+      message: 'Are you sure you want to clear all products, store inventory, categories, and job postings? (Note: Job applications and your custom logo will NOT be deleted). This will clear cloud storage and update all connected devices in real-time.',
       onConfirm: async () => {
-        showToast('Resetting data across cloud and all connected devices...', 'info');
+        showToast('Resetting catalog & inventory across cloud and all connected devices...', 'info');
         const resetRes = await resetAllDataToDefaultAsync();
         onUpdateProducts(resetRes.products);
         onUpdateStoreItems(resetRes.storeItems);
@@ -622,9 +622,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
           setJobRolesList(resetRes.jobRoles);
           onUpdateJobRoles(resetRes.jobRoles);
         }
-        setJobAppsList([]);
         refreshLogs();
-        showToast('Catalog & store reset across cloud & synced to all connected devices.', 'success');
+        showToast('Catalog reset across cloud & synced to all connected devices. (Logo & Job Applications preserved)', 'success');
       },
     });
   };

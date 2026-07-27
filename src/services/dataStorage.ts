@@ -472,30 +472,30 @@ export async function wipeFirestoreCollection(collectionName: string): Promise<v
   }
 }
 
-// Reset data back to initial defaults synchronously (for local fallback)
+// Reset data back to clean state synchronously (for local fallback)
 export function resetAllDataToDefault(): { 
   products: TurnkeyProduct[]; 
   storeItems: StoreItem[];
   productCategories: ProductCategory[];
   storeCategories: StoreCategory[];
 } {
-  saveStoredTurnkeyProducts(INITIAL_TURNKEY_PRODUCTS);
-  saveStoredStoreItems(STORE_PRODUCTS);
-  saveStoredProductCategories(DEFAULT_PRODUCT_CATEGORIES);
-  saveStoredStoreCategories(DEFAULT_STORE_CATEGORIES);
-  saveStoredJobRoles(INITIAL_JOB_ROLES);
-  saveStoredJobApplications([]);
+  localStorage.setItem(STORAGE_KEYS.TURNKEY_PRODUCTS, JSON.stringify([]));
+  localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify([]));
+  localStorage.setItem(STORAGE_KEYS.PRODUCT_CATEGORIES, JSON.stringify([]));
+  localStorage.setItem(STORAGE_KEYS.STORE_CATEGORIES, JSON.stringify([]));
+  localStorage.setItem(STORAGE_KEYS.JOB_ROLES, JSON.stringify([]));
+  // Note: Custom logo & Job applications are explicitly preserved and NOT reset
   addAdminLog({
     action: 'RESET',
     target: 'PRODUCT',
-    title: 'Reset Factory Data',
-    details: 'Reset catalog, store components, and categories to default state.'
+    title: 'Factory Reset (Cleared Data)',
+    details: 'Cleared all catalog hardware, store components, categories, and job postings. Job applications & branding preserved.'
   });
   return {
-    products: INITIAL_TURNKEY_PRODUCTS,
-    storeItems: STORE_PRODUCTS,
-    productCategories: DEFAULT_PRODUCT_CATEGORIES,
-    storeCategories: DEFAULT_STORE_CATEGORIES,
+    products: [],
+    storeItems: [],
+    productCategories: [],
+    storeCategories: [],
   };
 }
 
@@ -508,59 +508,41 @@ export async function resetAllDataToDefaultAsync(): Promise<{
   jobRoles: JobRole[];
   jobApplications: JobApplication[];
 }> {
+  const existingJobApps = getStoredJobApplications();
+
   try {
-    // 1. Wipe cloud collections
+    // 1. Wipe cloud collections completely (Except job_applications & branding settings)
     await wipeFirestoreCollection('turnkey_products');
     await wipeFirestoreCollection('store_items');
     await wipeFirestoreCollection('product_categories');
     await wipeFirestoreCollection('store_categories');
     await wipeFirestoreCollection('job_roles');
-    await wipeFirestoreCollection('job_applications');
+    // Note: We DO NOT touch 'job_applications', 'app_settings/branding' or CUSTOM_LOGO.
 
-    // 2. Re-seed cloud collections with default initial data
-    for (const p of INITIAL_TURNKEY_PRODUCTS) {
-      await setDoc(doc(db, 'turnkey_products', p.id), p);
-    }
-    for (const item of STORE_PRODUCTS) {
-      await setDoc(doc(db, 'store_items', item.id), item);
-    }
-    for (const cat of DEFAULT_PRODUCT_CATEGORIES) {
-      await setDoc(doc(db, 'product_categories', cat.id), cat);
-    }
-    for (const cat of DEFAULT_STORE_CATEGORIES) {
-      await setDoc(doc(db, 'store_categories', cat.id), cat);
-    }
-    for (const role of INITIAL_JOB_ROLES) {
-      await setDoc(doc(db, 'job_roles', role.id), role);
-    }
-    await setDoc(doc(db, 'app_settings', 'branding'), { customLogo: null });
-
-    // 3. Update local storage
-    localStorage.setItem(STORAGE_KEYS.TURNKEY_PRODUCTS, JSON.stringify(INITIAL_TURNKEY_PRODUCTS));
-    localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify(STORE_PRODUCTS));
-    localStorage.setItem(STORAGE_KEYS.PRODUCT_CATEGORIES, JSON.stringify(DEFAULT_PRODUCT_CATEGORIES));
-    localStorage.setItem(STORAGE_KEYS.STORE_CATEGORIES, JSON.stringify(DEFAULT_STORE_CATEGORIES));
-    localStorage.setItem(STORAGE_KEYS.JOB_ROLES, JSON.stringify(INITIAL_JOB_ROLES));
-    localStorage.setItem(STORAGE_KEYS.JOB_APPLICATIONS, JSON.stringify([]));
-    localStorage.removeItem(STORAGE_KEYS.CUSTOM_LOGO);
+    // 2. Update local storage caches to empty (Preserving job applications & logo)
+    localStorage.setItem(STORAGE_KEYS.TURNKEY_PRODUCTS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.PRODUCT_CATEGORIES, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.STORE_CATEGORIES, JSON.stringify([]));
+    localStorage.setItem(STORAGE_KEYS.JOB_ROLES, JSON.stringify([]));
 
     addAdminLog({
       action: 'RESET',
       target: 'PRODUCT',
-      title: 'Reset Factory Data (Cloud Synced)',
-      details: 'Pushed factory reset to Firestore. All connected mobile & desktop devices updated in real-time.'
+      title: 'Factory Reset (Cloud Synced & Cleared)',
+      details: 'Pushed factory reset to Firestore. Connected devices cleared in real-time. Logo & job applications preserved.'
     });
   } catch (err) {
     console.error('Error during cloud factory reset:', err);
   }
 
   return {
-    products: INITIAL_TURNKEY_PRODUCTS,
-    storeItems: STORE_PRODUCTS,
-    productCategories: DEFAULT_PRODUCT_CATEGORIES,
-    storeCategories: DEFAULT_STORE_CATEGORIES,
-    jobRoles: INITIAL_JOB_ROLES,
-    jobApplications: [],
+    products: [],
+    storeItems: [],
+    productCategories: [],
+    storeCategories: [],
+    jobRoles: [],
+    jobApplications: existingJobApps,
   };
 }
 
@@ -647,16 +629,9 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   // 1. Store Items Listener
   try {
     const unsub = onSnapshot(collection(db, 'store_items'), (snapshot) => {
-      if (!snapshot.empty) {
-        const items = snapshot.docs.map((doc) => doc.data() as StoreItem);
-        localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify(items));
-        onUpdate({ storeItems: items });
-      } else {
-        // Seed default store items if cloud is empty
-        STORE_PRODUCTS.forEach((item) => {
-          setDoc(doc(db, 'store_items', item.id), item, { merge: true });
-        });
-      }
+      const items = snapshot.docs.map((doc) => doc.data() as StoreItem);
+      localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify(items));
+      onUpdate({ storeItems: items });
     });
     unsubs.push(unsub);
   } catch (e) {
@@ -666,15 +641,9 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   // 2. Turnkey Products Listener
   try {
     const unsub = onSnapshot(collection(db, 'turnkey_products'), (snapshot) => {
-      if (!snapshot.empty) {
-        const products = snapshot.docs.map((doc) => doc.data() as TurnkeyProduct);
-        localStorage.setItem(STORAGE_KEYS.TURNKEY_PRODUCTS, JSON.stringify(products));
-        onUpdate({ products });
-      } else {
-        INITIAL_TURNKEY_PRODUCTS.forEach((p) => {
-          setDoc(doc(db, 'turnkey_products', p.id), p, { merge: true });
-        });
-      }
+      const products = snapshot.docs.map((doc) => doc.data() as TurnkeyProduct);
+      localStorage.setItem(STORAGE_KEYS.TURNKEY_PRODUCTS, JSON.stringify(products));
+      onUpdate({ products });
     });
     unsubs.push(unsub);
   } catch (e) {
@@ -684,15 +653,9 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   // 3. Product Categories Listener
   try {
     const unsub = onSnapshot(collection(db, 'product_categories'), (snapshot) => {
-      if (!snapshot.empty) {
-        const categories = snapshot.docs.map((doc) => doc.data() as ProductCategory);
-        localStorage.setItem(STORAGE_KEYS.PRODUCT_CATEGORIES, JSON.stringify(categories));
-        onUpdate({ productCategories: categories });
-      } else {
-        DEFAULT_PRODUCT_CATEGORIES.forEach((cat) => {
-          setDoc(doc(db, 'product_categories', cat.id), cat, { merge: true });
-        });
-      }
+      const categories = snapshot.docs.map((doc) => doc.data() as ProductCategory);
+      localStorage.setItem(STORAGE_KEYS.PRODUCT_CATEGORIES, JSON.stringify(categories));
+      onUpdate({ productCategories: categories });
     });
     unsubs.push(unsub);
   } catch (e) {
@@ -702,15 +665,9 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   // 4. Store Categories Listener
   try {
     const unsub = onSnapshot(collection(db, 'store_categories'), (snapshot) => {
-      if (!snapshot.empty) {
-        const categories = snapshot.docs.map((doc) => doc.data() as StoreCategory);
-        localStorage.setItem(STORAGE_KEYS.STORE_CATEGORIES, JSON.stringify(categories));
-        onUpdate({ storeCategories: categories });
-      } else {
-        DEFAULT_STORE_CATEGORIES.forEach((cat) => {
-          setDoc(doc(db, 'store_categories', cat.id), cat, { merge: true });
-        });
-      }
+      const categories = snapshot.docs.map((doc) => doc.data() as StoreCategory);
+      localStorage.setItem(STORAGE_KEYS.STORE_CATEGORIES, JSON.stringify(categories));
+      onUpdate({ storeCategories: categories });
     });
     unsubs.push(unsub);
   } catch (e) {
@@ -720,15 +677,9 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   // 5. Job Roles Listener
   try {
     const unsub = onSnapshot(collection(db, 'job_roles'), (snapshot) => {
-      if (!snapshot.empty) {
-        const roles = snapshot.docs.map((doc) => doc.data() as JobRole);
-        localStorage.setItem(STORAGE_KEYS.JOB_ROLES, JSON.stringify(roles));
-        onUpdate({ jobRoles: roles });
-      } else {
-        INITIAL_JOB_ROLES.forEach((role) => {
-          setDoc(doc(db, 'job_roles', role.id), role, { merge: true });
-        });
-      }
+      const roles = snapshot.docs.map((doc) => doc.data() as JobRole);
+      localStorage.setItem(STORAGE_KEYS.JOB_ROLES, JSON.stringify(roles));
+      onUpdate({ jobRoles: roles });
     });
     unsubs.push(unsub);
   } catch (e) {
@@ -738,11 +689,9 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   // 6. Job Applications Listener
   try {
     const unsub = onSnapshot(collection(db, 'job_applications'), (snapshot) => {
-      if (!snapshot.empty) {
-        const apps = snapshot.docs.map((doc) => doc.data() as JobApplication);
-        localStorage.setItem(STORAGE_KEYS.JOB_APPLICATIONS, JSON.stringify(apps));
-        onUpdate({ jobApplications: apps });
-      }
+      const apps = snapshot.docs.map((doc) => doc.data() as JobApplication);
+      localStorage.setItem(STORAGE_KEYS.JOB_APPLICATIONS, JSON.stringify(apps));
+      onUpdate({ jobApplications: apps });
     });
     unsubs.push(unsub);
   } catch (e) {
@@ -752,10 +701,8 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   // 7. Users Listener (Syncs registered user accounts to local storage cache)
   try {
     const unsub = onSnapshot(collection(db, 'users'), (snapshot) => {
-      if (!snapshot.empty) {
-        const users = snapshot.docs.map((doc) => doc.data() as StoredUserAccount);
-        localStorage.setItem(STORAGE_KEYS.REGISTERED_USERS, JSON.stringify(users));
-      }
+      const users = snapshot.docs.map((doc) => doc.data() as StoredUserAccount);
+      localStorage.setItem(STORAGE_KEYS.REGISTERED_USERS, JSON.stringify(users));
     });
     unsubs.push(unsub);
   } catch (e) {
