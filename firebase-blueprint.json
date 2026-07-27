@@ -1,0 +1,100 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Account",
+      "description": "Registered user accounts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" },
+        "company": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "email", "name"]
+    },
+    "turnkey_products": {
+      "title": "Turnkey Product",
+      "description": "Turnkey products catalog",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" }
+      },
+      "required": ["id", "title"]
+    },
+    "store_items": {
+      "title": "Store Item",
+      "description": "Store components catalog",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "price": { "type": "number" }
+      },
+      "required": ["id", "name"]
+    },
+    "product_categories": {
+      "title": "Product Category",
+      "description": "Categories for turnkey products",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" }
+      },
+      "required": ["id", "label"]
+    },
+    "store_categories": {
+      "title": "Store Category",
+      "description": "Categories for store items",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "label": { "type": "string" }
+      },
+      "required": ["id", "label"]
+    },
+    "job_roles": {
+      "title": "Job Role",
+      "description": "Career openings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" }
+      },
+      "required": ["id", "title"]
+    },
+    "job_applications": {
+      "title": "Job Application",
+      "description": "Submitted candidate applications",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "jobId": { "type": "string" },
+        "applicantName": { "type": "string" }
+      },
+      "required": ["id", "jobId", "applicantName"]
+    },
+    "admin_logs": {
+      "title": "Admin Audit Log",
+      "description": "Admin action logs",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" }
+      },
+      "required": ["id"]
+    },
+    "authorized_admin_emails": {
+      "title": "Authorized Admin Email",
+      "description": "Admin email authorization list",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" }
+      },
+      "required": ["email"]
+    }
+  }
+}
