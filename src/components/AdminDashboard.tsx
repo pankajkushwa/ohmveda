@@ -16,7 +16,7 @@ import { STORE_PRODUCTS } from '../data/storeProducts';
 import { 
   addAdminLog, AdminLog, DEFAULT_PRODUCT_CATEGORIES, DEFAULT_STORE_CATEGORIES, deleteFirestoreDoc, getAdminLogs, 
   getStoredAuthorizedAdminEmails, getStoredCustomLogo, getStoredJobApplications, getStoredJobRoles, isAuthorizedAdminEmail, 
-  resetAllDataToDefault, saveStoredAuthorizedAdminEmails, saveStoredCustomLogo, saveStoredJobApplications, saveStoredJobRoles 
+  resetAllDataToDefault, resetAllDataToDefaultAsync, saveStoredAuthorizedAdminEmails, saveStoredCustomLogo, saveStoredJobApplications, saveStoredJobRoles 
 } from '../services/dataStorage';
 
 interface AdminDashboardProps {
@@ -609,16 +609,22 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const handleResetDefaults = () => {
     setDeleteModal({
       isOpen: true,
-      title: 'Reset Catalog Defaults',
-      message: 'Are you sure you want to reset catalog back to sample defaults? All manual edits will be replaced with initial dataset.',
-      onConfirm: () => {
-        const { products: resetP, storeItems: resetS, productCategories: resetPC, storeCategories: resetSC } = resetAllDataToDefault();
-        onUpdateProducts(resetP);
-        onUpdateStoreItems(resetS);
-        if (onUpdateProductCategories && resetPC) onUpdateProductCategories(resetPC);
-        if (onUpdateStoreCategories && resetSC) onUpdateStoreCategories(resetSC);
+      title: 'Reset Catalog Defaults (Cloud Synced)',
+      message: 'Are you sure you want to reset all catalog items, store inventory, categories, and job openings back to sample defaults? This will update cloud storage and sync to all connected mobile & desktop devices.',
+      onConfirm: async () => {
+        showToast('Resetting data across cloud and all connected devices...', 'info');
+        const resetRes = await resetAllDataToDefaultAsync();
+        onUpdateProducts(resetRes.products);
+        onUpdateStoreItems(resetRes.storeItems);
+        if (onUpdateProductCategories && resetRes.productCategories) onUpdateProductCategories(resetRes.productCategories);
+        if (onUpdateStoreCategories && resetRes.storeCategories) onUpdateStoreCategories(resetRes.storeCategories);
+        if (onUpdateJobRoles && resetRes.jobRoles) {
+          setJobRolesList(resetRes.jobRoles);
+          onUpdateJobRoles(resetRes.jobRoles);
+        }
+        setJobAppsList([]);
         refreshLogs();
-        showToast('Catalog reset to sample dataset.', 'info');
+        showToast('Catalog & store reset across cloud & synced to all connected devices.', 'success');
       },
     });
   };

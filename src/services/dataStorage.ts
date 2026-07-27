@@ -461,28 +461,106 @@ export async function authenticateUserAsync(
   }
 }
 
-// Reset data back to initial defaults
+// Helper to wipe a Firestore collection completely
+export async function wipeFirestoreCollection(collectionName: string): Promise<void> {
+  try {
+    const snapshot = await getDocs(collection(db, collectionName));
+    const deletePromises = snapshot.docs.map((docSnap) => deleteDoc(doc(db, collectionName, docSnap.id)));
+    await Promise.all(deletePromises);
+  } catch (err) {
+    console.error(`Error wiping Firestore collection ${collectionName}:`, err);
+  }
+}
+
+// Reset data back to initial defaults synchronously (for local fallback)
 export function resetAllDataToDefault(): { 
   products: TurnkeyProduct[]; 
   storeItems: StoreItem[];
   productCategories: ProductCategory[];
   storeCategories: StoreCategory[];
 } {
-  saveStoredTurnkeyProducts([]);
-  saveStoredStoreItems([]);
-  saveStoredProductCategories([]);
-  saveStoredStoreCategories([]);
+  saveStoredTurnkeyProducts(INITIAL_TURNKEY_PRODUCTS);
+  saveStoredStoreItems(STORE_PRODUCTS);
+  saveStoredProductCategories(DEFAULT_PRODUCT_CATEGORIES);
+  saveStoredStoreCategories(DEFAULT_STORE_CATEGORIES);
+  saveStoredJobRoles(INITIAL_JOB_ROLES);
+  saveStoredJobApplications([]);
   addAdminLog({
     action: 'RESET',
     target: 'PRODUCT',
     title: 'Reset Factory Data',
-    details: 'Cleared all catalog hardware, store components, and categories to blank state.'
+    details: 'Reset catalog, store components, and categories to default state.'
   });
   return {
-    products: [],
-    storeItems: [],
-    productCategories: [],
-    storeCategories: [],
+    products: INITIAL_TURNKEY_PRODUCTS,
+    storeItems: STORE_PRODUCTS,
+    productCategories: DEFAULT_PRODUCT_CATEGORIES,
+    storeCategories: DEFAULT_STORE_CATEGORIES,
+  };
+}
+
+// Async full Factory Reset across Cloud Firestore & All Synced Devices
+export async function resetAllDataToDefaultAsync(): Promise<{
+  products: TurnkeyProduct[];
+  storeItems: StoreItem[];
+  productCategories: ProductCategory[];
+  storeCategories: StoreCategory[];
+  jobRoles: JobRole[];
+  jobApplications: JobApplication[];
+}> {
+  try {
+    // 1. Wipe cloud collections
+    await wipeFirestoreCollection('turnkey_products');
+    await wipeFirestoreCollection('store_items');
+    await wipeFirestoreCollection('product_categories');
+    await wipeFirestoreCollection('store_categories');
+    await wipeFirestoreCollection('job_roles');
+    await wipeFirestoreCollection('job_applications');
+
+    // 2. Re-seed cloud collections with default initial data
+    for (const p of INITIAL_TURNKEY_PRODUCTS) {
+      await setDoc(doc(db, 'turnkey_products', p.id), p);
+    }
+    for (const item of STORE_PRODUCTS) {
+      await setDoc(doc(db, 'store_items', item.id), item);
+    }
+    for (const cat of DEFAULT_PRODUCT_CATEGORIES) {
+      await setDoc(doc(db, 'product_categories', cat.id), cat);
+    }
+    for (const cat of DEFAULT_STORE_CATEGORIES) {
+      await setDoc(doc(db, 'store_categories', cat.id), cat);
+    }
+    for (const role of INITIAL_JOB_ROLES) {
+      await setDoc(doc(db, 'job_roles', role.id), role);
+    }
+    await setDoc(doc(db, 'app_settings', 'branding'), { customLogo: null });
+
+    // 3. Update local storage
+    localStorage.setItem(STORAGE_KEYS.TURNKEY_PRODUCTS, JSON.stringify(INITIAL_TURNKEY_PRODUCTS));
+    localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify(STORE_PRODUCTS));
+    localStorage.setItem(STORAGE_KEYS.PRODUCT_CATEGORIES, JSON.stringify(DEFAULT_PRODUCT_CATEGORIES));
+    localStorage.setItem(STORAGE_KEYS.STORE_CATEGORIES, JSON.stringify(DEFAULT_STORE_CATEGORIES));
+    localStorage.setItem(STORAGE_KEYS.JOB_ROLES, JSON.stringify(INITIAL_JOB_ROLES));
+    localStorage.setItem(STORAGE_KEYS.JOB_APPLICATIONS, JSON.stringify([]));
+    localStorage.removeItem(STORAGE_KEYS.CUSTOM_LOGO);
+
+    addAdminLog({
+      action: 'RESET',
+      target: 'PRODUCT',
+      title: 'Reset Factory Data (Cloud Synced)',
+      details: 'Pushed factory reset to Firestore. All connected mobile & desktop devices updated in real-time.'
+    });
+  } catch (err) {
+    console.error('Error during cloud factory reset:', err);
+  }
+
+  return {
+    products: INITIAL_TURNKEY_PRODUCTS,
+    storeItems: STORE_PRODUCTS,
+    productCategories: DEFAULT_PRODUCT_CATEGORIES,
+    storeCategories: DEFAULT_STORE_CATEGORIES,
+    jobRoles: INITIAL_JOB_ROLES,
+    jobApplications: [],
   };
 }
 
