@@ -8,7 +8,9 @@ import { EndToEndPipeline } from './components/EndToEndPipeline';
 import { StoreSection } from './components/StoreSection';
 import { AboutSection } from './components/AboutSection';
 import { ContactSection } from './components/ContactSection';
-import { AdminDashboard } from './components/AdminDashboard';
+const AdminDashboard = React.lazy(() =>
+  import('./admin/AdminDashboard').then((m) => ({ default: m.AdminDashboard }))
+);
 import { ProjectModal } from './components/ProjectModal';
 import { AuthModal } from './components/AuthModal';
 import { CartDrawer } from './components/CartDrawer';
@@ -33,7 +35,37 @@ import {
 } from './services/dataStorage';
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<'home' | 'products' | 'store' | 'careers' | 'admin'>('home');
+  // Standalone route detection: Admin portal opens independently via /#admin, /admin, or ?admin=true
+  const [currentPage, setCurrentPage] = useState<'home' | 'products' | 'store' | 'careers' | 'admin'>(() => {
+    if (
+      typeof window !== 'undefined' &&
+      (window.location.hash === '#admin' ||
+       window.location.pathname.endsWith('/admin') ||
+       new URLSearchParams(window.location.search).get('admin') === 'true')
+    ) {
+      return 'admin';
+    }
+    return 'home';
+  });
+
+  // Listen to hash and location changes for direct standalone URL navigation
+  useEffect(() => {
+    const handleLocationCheck = () => {
+      if (
+        window.location.hash === '#admin' ||
+        window.location.pathname.endsWith('/admin') ||
+        new URLSearchParams(window.location.search).get('admin') === 'true'
+      ) {
+        setCurrentPage('admin');
+      }
+    };
+    window.addEventListener('hashchange', handleLocationCheck);
+    window.addEventListener('popstate', handleLocationCheck);
+    return () => {
+      window.removeEventListener('hashchange', handleLocationCheck);
+      window.removeEventListener('popstate', handleLocationCheck);
+    };
+  }, []);
   const [activeSection, setActiveSection] = useState('hero');
   const [storeCategory, setStoreCategory] = useState<string>('all');
   const [storeComponentId, setStoreComponentId] = useState<string | null>(null);
@@ -322,26 +354,36 @@ export default function App() {
       )}
 
       <main className="grow">
-        {/* VIEW 0: ADMIN DASHBOARD */}
+        {/* VIEW 0: ADMIN DASHBOARD (Separated & Code-Split for Maximum Performance) */}
         {currentPage === 'admin' && (
-          <AdminDashboard
-            products={products}
-            storeItems={storeItems}
-            productCategories={productCategories}
-            storeCategories={storeCategories}
-            jobRoles={jobRoles}
-            userProfile={userProfile}
-            onOpenAuth={() => setAuthModalOpen(true)}
-            onLogout={handleLogout}
-            onUpdateProducts={handleUpdateProducts}
-            onUpdateStoreItems={handleUpdateStoreItems}
-            onUpdateProductCategories={handleUpdateProductCategories}
-            onUpdateStoreCategories={handleUpdateStoreCategories}
-            onUpdateJobRoles={handleUpdateJobRoles}
-            onBackToHome={() => handleNavigate('home', 'hero')}
-            onNavigateToProducts={() => handleNavigate('products')}
-            onNavigateToStore={() => handleNavigate('store')}
-          />
+          <React.Suspense
+            fallback={
+              <div className="min-h-[80vh] flex flex-col items-center justify-center p-8 text-center text-slate-400">
+                <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                <p className="text-sm font-semibold text-slate-300">Loading Management Console...</p>
+                <p className="text-xs text-slate-500 mt-1">Downloading admin panel modules on demand</p>
+              </div>
+            }
+          >
+            <AdminDashboard
+              products={products}
+              storeItems={storeItems}
+              productCategories={productCategories}
+              storeCategories={storeCategories}
+              jobRoles={jobRoles}
+              userProfile={userProfile}
+              onOpenAuth={() => setAuthModalOpen(true)}
+              onLogout={handleLogout}
+              onUpdateProducts={handleUpdateProducts}
+              onUpdateStoreItems={handleUpdateStoreItems}
+              onUpdateProductCategories={handleUpdateProductCategories}
+              onUpdateStoreCategories={handleUpdateStoreCategories}
+              onUpdateJobRoles={handleUpdateJobRoles}
+              onBackToHome={() => handleNavigate('home', 'hero')}
+              onNavigateToProducts={() => handleNavigate('products')}
+              onNavigateToStore={() => handleNavigate('store')}
+            />
+          </React.Suspense>
         )}
 
         {/* VIEW 1: CAREERS & PLACEMENTS PAGE */}

@@ -438,21 +438,7 @@ export const Header: React.FC<HeaderProps> = ({
               Contact
             </button>
 
-            {/* Admin Dashboard - Only visible after login for authorized email IDs */}
-            {userProfile && isAuthorizedAdminEmail(userProfile.email) && (
-              <button
-                onClick={() => handleNavClick('admin')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all duration-200 flex items-center gap-1.5 ${
-                  currentPage === 'admin'
-                    ? 'bg-amber-600 text-white shadow-xs'
-                    : 'text-amber-700 hover:text-amber-800 bg-amber-50 border border-amber-200 hover:bg-amber-100/80'
-                }`}
-                title="Admin Console - Manage Products & Store"
-              >
-                <ShieldCheck className="w-3.5 h-3.5" />
-                <span>Admin</span>
-              </button>
-            )}
+
           </nav>
 
           {/* Right Utilities (Cart, Auth, Proposal CTA) */}
@@ -672,19 +658,7 @@ export const Header: React.FC<HeaderProps> = ({
               Contact Us
             </button>
 
-            {userProfile && isAuthorizedAdminEmail(userProfile.email) && (
-              <button
-                onClick={() => handleNavClick('admin')}
-                className={`px-3 py-2.5 rounded-lg text-xs font-bold text-left transition-colors flex items-center gap-2 ${
-                  currentPage === 'admin'
-                    ? 'bg-amber-600 text-white'
-                    : 'bg-slate-900 text-amber-400 border border-amber-500/30 hover:bg-slate-800'
-                }`}
-              >
-                <ShieldCheck className="w-4 h-4" />
-                <span>Admin Management Console</span>
-              </button>
-            )}
+
           </div>
 
           <div className="pt-3 border-t border-slate-800 flex flex-col gap-2">

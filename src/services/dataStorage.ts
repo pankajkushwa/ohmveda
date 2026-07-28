@@ -48,7 +48,7 @@ export interface AdminLog {
   id: string;
   timestamp: string;
   action: 'ADD' | 'UPDATE' | 'DELETE' | 'RESET';
-  target: 'PRODUCT' | 'STORE' | 'CATEGORY';
+  target: 'PRODUCT' | 'STORE' | 'CATEGORY' | 'BRANDING' | 'ACCESS' | 'CAREERS';
   title: string;
   details: string;
 }
