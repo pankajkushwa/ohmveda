@@ -86,22 +86,27 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
 
   const getCategoryCount = (catId: string) => {
     return activeProductsList.filter((p) => {
+      if (!p) return false;
       if (catId === 'all') return true;
-      return p.category === catId;
+      return (p.category || '').trim().toLowerCase() === catId.trim().toLowerCase();
     }).length;
   };
 
   const filteredProducts = activeProductsList.filter((product) => {
-    const matchesCategory = selectedCategory === 'all' || product.category === selectedCategory;
+    if (!product) return false;
+    const matchesCategory =
+      selectedCategory === 'all' ||
+      (product.category || '').trim().toLowerCase() === selectedCategory.trim().toLowerCase();
+    const q = searchQuery.toLowerCase();
     const matchesSearch =
       !searchQuery ||
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.shortDesc.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStock = !inStockOnly || product.stock > 0;
+      (product.name || '').toLowerCase().includes(q) ||
+      (product.sku || '').toLowerCase().includes(q) ||
+      (product.shortDesc || '').toLowerCase().includes(q);
+    const matchesStock = !inStockOnly || ((product.stock ?? 0) > 0 && product.inStock);
     const matchesSale = !onSaleOnly || (
-      (product.discountPercent && product.discountPercent > 0) ||
-      (product.originalPrice && product.originalPrice > product.price)
+      ((product.discountPercent ?? 0) > 0) ||
+      (product.originalPrice ? product.originalPrice > product.price : false)
     );
     return matchesCategory && matchesSearch && matchesStock && matchesSale;
   });
@@ -317,7 +322,7 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
                     {selectedComponent.shortDesc}
                   </p>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-                    {selectedComponent.specs.map((spec, idx) => (
+                    {(selectedComponent.specs || []).map((spec, idx) => (
                       <div key={idx} className="flex items-start gap-2 text-xs text-slate-700 bg-slate-50 p-2.5 rounded-lg border border-slate-100">
                         <Check className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                         <span className="font-medium">{spec}</span>
@@ -471,7 +476,7 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
                     </tr>
                     <tr>
                       <td className="px-4 py-3 font-bold text-slate-700">Key Highlights</td>
-                      <td className="px-4 py-3 text-slate-900">{selectedComponent.specs.join(', ')}</td>
+                      <td className="px-4 py-3 text-slate-900">{(selectedComponent.specs || []).join(', ')}</td>
                     </tr>
                     <tr className="bg-slate-50">
                       <td className="px-4 py-3 font-bold text-slate-700">GST Invoice & Tax</td>
@@ -840,7 +845,7 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
 
                       {/* Specs Pill List */}
                       <div className="mt-3 space-y-1">
-                        {product.specs.slice(0, 2).map((spec, idx) => (
+                        {(product.specs || []).slice(0, 2).map((spec, idx) => (
                           <div key={idx} className="flex items-center gap-1.5 text-[11px] text-slate-600 font-medium">
                             <span className="w-1.5 h-1.5 rounded-full bg-blue-600 shrink-0" />
                             <span className="truncate">{spec}</span>

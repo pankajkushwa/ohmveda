@@ -44,7 +44,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
   });
 
   const handleOpenAddStoreItem = () => {
-    const defaultCategory = storeCategories.length > 0 ? storeCategories[0].id : '';
+    const defaultCategory = storeCategories.length > 0 ? storeCategories[0].id : 'microcontrollers';
     const newItem: StoreItem = {
       id: `store-item-${Date.now()}`,
       name: '',
@@ -116,7 +116,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
     const finalItem: StoreItem = {
       ...editingStoreItem,
       price: finalSellingPrice,
-      originalPrice: discVal > 0 ? baseVal : baseVal,
+      originalPrice: discVal > 0 && baseVal > finalSellingPrice ? baseVal : undefined,
       discountPercent: discVal > 0 ? discVal : undefined,
       specs: parsedSpecs,
     };
@@ -285,7 +285,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                   </td>
                   <td className="py-3 px-4">
                     <div className="font-bold text-emerald-600">₹{item.price.toLocaleString('en-IN')}</div>
-                    {item.originalPrice ? (
+                    {item.originalPrice && item.originalPrice > item.price ? (
                       <div className="text-[10px] text-slate-400 line-through">
                         ₹{item.originalPrice.toLocaleString('en-IN')}
                       </div>

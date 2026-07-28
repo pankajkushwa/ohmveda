@@ -148,12 +148,15 @@ export function getStoredTurnkeyProducts(): TurnkeyProduct[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.TURNKEY_PRODUCTS);
     if (raw !== null) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
     }
   } catch (err) {
     console.error('Error reading stored products:', err);
   }
-  return INITIAL_TURNKEY_PRODUCTS;
+  return [];
 }
 
 // Helper to save turnkey products
@@ -175,12 +178,15 @@ export function getStoredStoreItems(): StoreItem[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.STORE_ITEMS);
     if (raw !== null) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
     }
   } catch (err) {
     console.error('Error reading store items:', err);
   }
-  return STORE_PRODUCTS;
+  return [];
 }
 
 // Helper to save store items
@@ -629,9 +635,37 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   // 1. Store Items Listener
   try {
     const unsub = onSnapshot(collection(db, 'store_items'), (snapshot) => {
-      const items = snapshot.docs.map((doc) => doc.data() as StoreItem);
-      localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify(items));
-      onUpdate({ storeItems: items });
+      if (!snapshot.empty) {
+        const items = snapshot.docs.map((docSnap) => {
+          const data = docSnap.data() as StoreItem;
+          const sellingPrice = data.price ?? 0;
+          const origPrice = (data.originalPrice && data.originalPrice > sellingPrice) ? data.originalPrice : undefined;
+          return {
+            ...data,
+            id: docSnap.id || data.id,
+            name: data.name || 'Unnamed Component',
+            price: sellingPrice,
+            originalPrice: origPrice,
+            discountPercent: data.discountPercent,
+            stock: data.stock ?? 0,
+            inStock: data.inStock ?? ((data.stock ?? 0) > 0),
+            rating: data.rating ?? 5.0,
+            reviewsCount: data.reviewsCount ?? 0,
+            image: data.image || 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=80',
+            images: data.images && Array.isArray(data.images) && data.images.length > 0 ? data.images : (data.image ? [data.image] : []),
+            shortDesc: data.shortDesc || '',
+            specs: Array.isArray(data.specs) ? data.specs : [],
+            sku: data.sku || 'OV-CMP-ITEM',
+            category: data.category || 'microcontrollers',
+            badge: data.badge,
+          };
+        });
+        localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify(items));
+        onUpdate({ storeItems: items });
+      } else {
+        localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify([]));
+        onUpdate({ storeItems: [] });
+      }
     });
     unsubs.push(unsub);
   } catch (e) {
@@ -641,9 +675,14 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   // 2. Turnkey Products Listener
   try {
     const unsub = onSnapshot(collection(db, 'turnkey_products'), (snapshot) => {
-      const products = snapshot.docs.map((doc) => doc.data() as TurnkeyProduct);
-      localStorage.setItem(STORAGE_KEYS.TURNKEY_PRODUCTS, JSON.stringify(products));
-      onUpdate({ products });
+      if (!snapshot.empty) {
+        const products = snapshot.docs.map((docSnap) => docSnap.data() as TurnkeyProduct);
+        localStorage.setItem(STORAGE_KEYS.TURNKEY_PRODUCTS, JSON.stringify(products));
+        onUpdate({ products });
+      } else {
+        localStorage.setItem(STORAGE_KEYS.TURNKEY_PRODUCTS, JSON.stringify([]));
+        onUpdate({ products: [] });
+      }
     });
     unsubs.push(unsub);
   } catch (e) {
@@ -653,9 +692,21 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   // 3. Product Categories Listener
   try {
     const unsub = onSnapshot(collection(db, 'product_categories'), (snapshot) => {
-      const categories = snapshot.docs.map((doc) => doc.data() as ProductCategory);
-      localStorage.setItem(STORAGE_KEYS.PRODUCT_CATEGORIES, JSON.stringify(categories));
-      onUpdate({ productCategories: categories });
+      if (!snapshot.empty) {
+        const categories = snapshot.docs.map((docSnap) => docSnap.data() as ProductCategory);
+        localStorage.setItem(STORAGE_KEYS.PRODUCT_CATEGORIES, JSON.stringify(categories));
+        onUpdate({ productCategories: categories });
+      } else {
+        const local = getStoredProductCategories();
+        const catsToSeed = local.length > 0 ? local : DEFAULT_PRODUCT_CATEGORIES;
+        catsToSeed.forEach((cat) => {
+          setDoc(doc(db, 'product_categories', cat.id), cat, { merge: true }).catch((err) =>
+            console.error('Firestore seed product category error:', err)
+          );
+        });
+        localStorage.setItem(STORAGE_KEYS.PRODUCT_CATEGORIES, JSON.stringify(catsToSeed));
+        onUpdate({ productCategories: catsToSeed });
+      }
     });
     unsubs.push(unsub);
   } catch (e) {
@@ -665,9 +716,21 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   // 4. Store Categories Listener
   try {
     const unsub = onSnapshot(collection(db, 'store_categories'), (snapshot) => {
-      const categories = snapshot.docs.map((doc) => doc.data() as StoreCategory);
-      localStorage.setItem(STORAGE_KEYS.STORE_CATEGORIES, JSON.stringify(categories));
-      onUpdate({ storeCategories: categories });
+      if (!snapshot.empty) {
+        const categories = snapshot.docs.map((docSnap) => docSnap.data() as StoreCategory);
+        localStorage.setItem(STORAGE_KEYS.STORE_CATEGORIES, JSON.stringify(categories));
+        onUpdate({ storeCategories: categories });
+      } else {
+        const local = getStoredStoreCategories();
+        const catsToSeed = local.length > 0 ? local : DEFAULT_STORE_CATEGORIES;
+        catsToSeed.forEach((cat) => {
+          setDoc(doc(db, 'store_categories', cat.id), cat, { merge: true }).catch((err) =>
+            console.error('Firestore seed store category error:', err)
+          );
+        });
+        localStorage.setItem(STORAGE_KEYS.STORE_CATEGORIES, JSON.stringify(catsToSeed));
+        onUpdate({ storeCategories: catsToSeed });
+      }
     });
     unsubs.push(unsub);
   } catch (e) {
@@ -677,9 +740,21 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   // 5. Job Roles Listener
   try {
     const unsub = onSnapshot(collection(db, 'job_roles'), (snapshot) => {
-      const roles = snapshot.docs.map((doc) => doc.data() as JobRole);
-      localStorage.setItem(STORAGE_KEYS.JOB_ROLES, JSON.stringify(roles));
-      onUpdate({ jobRoles: roles });
+      if (!snapshot.empty) {
+        const roles = snapshot.docs.map((docSnap) => docSnap.data() as JobRole);
+        localStorage.setItem(STORAGE_KEYS.JOB_ROLES, JSON.stringify(roles));
+        onUpdate({ jobRoles: roles });
+      } else {
+        const local = getStoredJobRoles();
+        const rolesToSeed = local.length > 0 ? local : INITIAL_JOB_ROLES;
+        rolesToSeed.forEach((r) => {
+          setDoc(doc(db, 'job_roles', r.id), r, { merge: true }).catch((err) =>
+            console.error('Firestore seed job role error:', err)
+          );
+        });
+        localStorage.setItem(STORAGE_KEYS.JOB_ROLES, JSON.stringify(rolesToSeed));
+        onUpdate({ jobRoles: rolesToSeed });
+      }
     });
     unsubs.push(unsub);
   } catch (e) {
