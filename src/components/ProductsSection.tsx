@@ -82,7 +82,7 @@ export const ProductsSection: React.FC<ProductsSectionProps> = ({
               </button>
             )}
             <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-blue-600 font-bold">Hardware Products & Ready-to-Deploy Systems</span>
+            <span className="text-blue-600 font-bold">Products</span>
           </div>
 
           {onBackToHome && (
@@ -97,13 +97,8 @@ export const ProductsSection: React.FC<ProductsSectionProps> = ({
 
         {/* Section Title Header */}
         <div className="max-w-3xl space-y-3 mb-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded bg-blue-50 border border-blue-200 text-xs text-blue-700 font-bold uppercase tracking-wider font-mono">
-            <Radio className="w-3.5 h-3.5 text-blue-600" />
-            <span>Ready-to-Deploy OEM Connected Hardware Solutions</span>
-          </div>
-
           <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-            Industrial Connected Products & Telemetry Platforms
+            Our Products
           </h1>
 
           <p className="text-slate-600 text-sm sm:text-base leading-relaxed font-normal">
@@ -133,20 +128,29 @@ export const ProductsSection: React.FC<ProductsSectionProps> = ({
 
         {/* Product Cards List */}
         <div className="mt-10 space-y-10">
-          {filteredProducts.map((product) => {
-            const Icon = getIcon(product.iconName);
-            const isSelected = activeProductId === product.id;
+          {filteredProducts.length === 0 ? (
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-12 text-center my-8 shadow-xs">
+              <Box className="w-12 h-12 text-slate-400 mx-auto mb-3" />
+              <h3 className="text-lg font-bold text-slate-800">No Products Available</h3>
+              <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
+                No products are currently listed in this category. You can create and publish new products via the Admin Portal.
+              </p>
+            </div>
+          ) : (
+            filteredProducts.map((product) => {
+              const Icon = getIcon(product.iconName);
+              const isSelected = activeProductId === product.id;
 
-            return (
-              <div
-                id={`product-card-${product.id}`}
-                key={product.id}
-                className={`scroll-mt-36 bg-slate-50 rounded-2xl border transition-all duration-300 p-6 sm:p-8 ${
-                  isSelected
-                    ? 'border-blue-500 shadow-xl ring-2 ring-blue-500/20 bg-blue-50/10'
-                    : 'border-slate-200 shadow-xs hover:border-slate-300'
-                }`}
-              >
+              return (
+                <div
+                  id={`product-card-${product.id}`}
+                  key={product.id}
+                  className={`scroll-mt-36 bg-slate-50 rounded-2xl border transition-all duration-300 p-6 sm:p-8 ${
+                    isSelected
+                      ? 'border-blue-500 shadow-xl ring-2 ring-blue-500/20 bg-blue-50/10'
+                      : 'border-slate-200 shadow-xs hover:border-slate-300'
+                  }`}
+                >
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                   
                   {/* Left Column: Product Information & Specs */}
@@ -311,17 +315,8 @@ export const ProductsSection: React.FC<ProductsSectionProps> = ({
                 </div>
               </div>
             );
-          })}
-
-          {filteredProducts.length === 0 && (
-            <div className="p-12 text-center rounded-3xl bg-slate-50 border border-slate-200 text-slate-500 space-y-3">
-              <Radio className="w-10 h-10 text-slate-300 mx-auto" />
-              <p className="text-base font-bold text-slate-800">No products available.</p>
-              <p className="text-xs text-slate-500 max-w-md mx-auto">
-                No products have been added yet or none match your selected category filter. Products added via the Admin Dashboard will appear here immediately.
-              </p>
-            </div>
-          )}
+          })
+        )}
         </div>
 
       </div>

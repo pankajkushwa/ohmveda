@@ -29,6 +29,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
   // Modal State
   const [storeItemModalOpen, setStoreItemModalOpen] = useState(false);
   const [editingStoreItem, setEditingStoreItem] = useState<StoreItem | null>(null);
+  const [specsInputText, setSpecsInputText] = useState('');
 
   // Filtered Store Components
   const filteredItems = storeItems.filter((s) => {
@@ -41,28 +42,32 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
   });
 
   const handleOpenAddStoreItem = () => {
+    const defaultCategory = storeCategories.length > 0 ? storeCategories[0].id : '';
     const newItem: StoreItem = {
       id: `store-item-${Date.now()}`,
-      name: 'ESP32-S3 Custom Dev Board with OLED',
-      category: 'microcontrollers',
-      price: 599,
-      originalPrice: 750,
-      stock: 50,
+      name: '',
+      category: defaultCategory,
+      price: 0,
+      originalPrice: 0,
+      stock: 10,
       inStock: true,
-      rating: 4.8,
-      reviewsCount: 12,
+      rating: 5.0,
+      reviewsCount: 0,
       image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=600&q=80',
-      shortDesc: 'Integrated ESP32-S3 Wi-Fi & BLE module with on-board 0.96 inch I2C OLED display.',
-      specs: ['ESP32-S3 240MHz Dual-Core', '0.96" OLED 128x64 Display', 'USB-C Type Cable Port', 'Wi-Fi + BLE 5.0'],
-      sku: `OV-MCU-${Math.floor(1000 + Math.random() * 9000)}`,
-      badge: 'New',
+      shortDesc: '',
+      specs: [],
+      sku: `OV-CMP-${Math.floor(1000 + Math.random() * 9000)}`,
+      badge: 'In Stock',
     };
     setEditingStoreItem(newItem);
+    setSpecsInputText('');
     setStoreItemModalOpen(true);
   };
 
   const handleOpenEditStoreItem = (item: StoreItem) => {
-    setEditingStoreItem(JSON.parse(JSON.stringify(item)));
+    const itemCopy: StoreItem = JSON.parse(JSON.stringify(item));
+    setEditingStoreItem(itemCopy);
+    setSpecsInputText(itemCopy.specs ? itemCopy.specs.join('\n') : '');
     setStoreItemModalOpen(true);
   };
 
@@ -70,27 +75,48 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
     e.preventDefault();
     if (!editingStoreItem) return;
 
-    const exists = storeItems.some((s) => s.id === editingStoreItem.id);
+    if (!editingStoreItem.name.trim()) {
+      showToast('Component name is required.', 'error');
+      return;
+    }
+
+    if (!editingStoreItem.category) {
+      showToast('Please select a component category.', 'error');
+      return;
+    }
+
+    // Parse specs from multiline text
+    const parsedSpecs = specsInputText
+      .split('\n')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    const finalItem: StoreItem = {
+      ...editingStoreItem,
+      specs: parsedSpecs,
+    };
+
+    const exists = storeItems.some((s) => s.id === finalItem.id);
     let updated: StoreItem[];
 
     if (exists) {
-      updated = storeItems.map((s) => (s.id === editingStoreItem.id ? editingStoreItem : s));
+      updated = storeItems.map((s) => (s.id === finalItem.id ? finalItem : s));
       addAdminLog({
         action: 'UPDATE',
         target: 'STORE',
-        title: `Updated Store Component: ${editingStoreItem.name}`,
-        details: `SKU: ${editingStoreItem.sku} | Price: ₹${editingStoreItem.price} | Stock: ${editingStoreItem.stock}`,
+        title: `Updated Store Component: ${finalItem.name}`,
+        details: `Category: ${finalItem.category} | SKU: ${finalItem.sku} | Price: ₹${finalItem.price}`,
       });
-      showToast(`Component "${editingStoreItem.name}" updated.`, 'success');
+      showToast(`Component "${finalItem.name}" updated successfully.`, 'success');
     } else {
-      updated = [editingStoreItem, ...storeItems];
+      updated = [finalItem, ...storeItems];
       addAdminLog({
         action: 'ADD',
         target: 'STORE',
-        title: `Added Store Component: ${editingStoreItem.name}`,
-        details: `SKU: ${editingStoreItem.sku} | Price: ₹${editingStoreItem.price}`,
+        title: `Added Store Component: ${finalItem.name}`,
+        details: `Category: ${finalItem.category} | SKU: ${finalItem.sku} | Price: ₹${finalItem.price}`,
       });
-      showToast(`Component "${editingStoreItem.name}" added.`, 'success');
+      showToast(`Component "${finalItem.name}" added to inventory.`, 'success');
     }
 
     onUpdateStoreItems(updated);
@@ -131,31 +157,37 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
     onUpdateStoreItems(updated);
   };
 
+  // Helper to find category label
+  const getCategoryLabel = (catId: string) => {
+    const found = storeCategories.find((c) => c.id === catId);
+    return found ? found.label : catId;
+  };
+
   return (
     <div className="space-y-6">
       {/* Top Action Bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
         <div>
-          <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            <Cpu className="w-5 h-5 text-emerald-400" />
+          <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Cpu className="w-5 h-5 text-emerald-600" />
             <span>Electronics Store Inventory</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Manage microcontrollers, sensors, communication modules, and power boards ({storeItems.length} store items)
+          <p className="text-xs text-slate-500 mt-0.5">
+            Manage microcontrollers, resistors, sensors, communication modules, and power components ({storeItems.length} store items)
           </p>
         </div>
 
         <div className="flex items-center gap-2">
           <button
             onClick={onNavigateToStore}
-            className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1.5 transition-colors"
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 flex items-center gap-1.5 transition-colors"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             <span>Visit Electronics Store</span>
           </button>
           <button
             onClick={handleOpenAddStoreItem}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 flex items-center gap-1.5 transition-all"
+            className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm shadow-emerald-600/20 flex items-center gap-1.5 transition-all"
           >
             <Plus className="w-4 h-4" />
             <span>Add Store Component</span>
@@ -166,13 +198,13 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
       {/* Filter & Search Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
         <div className="sm:col-span-8 relative">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search store inventory by component name or SKU..."
-            className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+            className="w-full bg-white border border-slate-200 rounded-xl pl-10 pr-4 py-2.5 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-500 shadow-xs"
           />
         </div>
 
@@ -180,7 +212,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-slate-200 focus:outline-none focus:border-emerald-500"
+            className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-emerald-500 shadow-xs"
           >
             <option value="all">All Component Categories</option>
             {storeCategories.map((c) => (
@@ -193,11 +225,11 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
       </div>
 
       {/* Component Table / Cards */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden">
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-950/60 border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 <th className="py-3 px-4">Component</th>
                 <th className="py-3 px-4">Category</th>
                 <th className="py-3 px-4">Price</th>
@@ -205,39 +237,43 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-xs">
+            <tbody className="divide-y divide-slate-100 text-xs">
               {filteredItems.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-800/40 transition-colors">
+                <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-3">
                       <img
                         src={item.image}
                         alt={item.name}
-                        className="w-10 h-10 rounded-lg object-cover bg-slate-950 border border-slate-800"
+                        className="w-10 h-10 rounded-lg object-cover bg-slate-100 border border-slate-200"
                       />
                       <div>
-                        <p className="font-bold text-slate-100 line-clamp-1">{item.name}</p>
+                        <p className="font-bold text-slate-900 line-clamp-1">{item.name}</p>
                         <p className="text-[10px] text-slate-500 font-mono">SKU: {item.sku || 'N/A'}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="py-3 px-4 capitalize text-slate-300 font-semibold">{item.category}</td>
+                  <td className="py-3 px-4 text-slate-700 font-medium">
+                    <span className="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 text-slate-700 text-[11px]">
+                      {getCategoryLabel(item.category)}
+                    </span>
+                  </td>
                   <td className="py-3 px-4">
-                    <div className="font-bold text-emerald-400">₹{item.price.toLocaleString('en-IN')}</div>
-                    {item.originalPrice && (
-                      <div className="text-[10px] text-slate-500 line-through">
+                    <div className="font-bold text-emerald-600">₹{item.price.toLocaleString('en-IN')}</div>
+                    {item.originalPrice ? (
+                      <div className="text-[10px] text-slate-400 line-through">
                         ₹{item.originalPrice.toLocaleString('en-IN')}
                       </div>
-                    )}
+                    ) : null}
                   </td>
                   <td className="py-3 px-4">
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => handleToggleStockStatus(item.id)}
-                        className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold flex items-center gap-1 ${
                           item.inStock
-                            ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                            : 'bg-red-500/10 text-red-400 border border-red-500/20'
+                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                            : 'bg-red-50 text-red-700 border border-red-200'
                         }`}
                       >
                         {item.inStock ? (
@@ -257,14 +293,14 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleQuickUpdateStock(item.id, item.stock - 5)}
-                            className="w-5 h-5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 font-bold text-xs"
+                            className="w-5 h-5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 font-bold text-xs"
                             title="Decrease Stock (-5)"
                           >
                             -
                           </button>
                           <button
                             onClick={() => handleQuickUpdateStock(item.id, item.stock + 5)}
-                            className="w-5 h-5 bg-slate-800 hover:bg-slate-700 rounded text-slate-300 font-bold text-xs"
+                            className="w-5 h-5 bg-slate-100 hover:bg-slate-200 rounded text-slate-700 font-bold text-xs"
                             title="Increase Stock (+5)"
                           >
                             +
@@ -277,14 +313,14 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                     <div className="flex items-center justify-end gap-2">
                       <button
                         onClick={() => handleOpenEditStoreItem(item)}
-                        className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700 transition-colors"
+                        className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200 transition-colors"
                         title="Edit Item"
                       >
-                        <Edit3 className="w-3.5 h-3.5 text-blue-400" />
+                        <Edit3 className="w-3.5 h-3.5 text-blue-600" />
                       </button>
                       <button
                         onClick={() => handleDeleteStoreItem(item.id, item.name)}
-                        className="p-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40 rounded-lg transition-colors"
+                        className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg transition-colors"
                         title="Delete Item"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
@@ -296,8 +332,8 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
 
               {filteredItems.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-slate-500">
-                    No store items matching your filter.
+                  <td colSpan={5} className="py-12 text-center text-slate-500">
+                    No store items matching your filter. Click "Add Store Component" to create one.
                   </td>
                 </tr>
               )}
@@ -308,11 +344,11 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
 
       {/* Edit/Add Store Item Modal */}
       {storeItemModalOpen && editingStoreItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 my-8 text-slate-200 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Cpu className="w-5 h-5 text-emerald-400" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full p-6 my-8 text-slate-800 shadow-2xl">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Cpu className="w-5 h-5 text-emerald-600" />
                 <span>
                   {storeItems.some((s) => s.id === editingStoreItem.id) ? 'Edit Store Component' : 'Add Store Component'}
                 </span>
@@ -322,7 +358,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                   setStoreItemModalOpen(false);
                   setEditingStoreItem(null);
                 }}
-                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -331,26 +367,27 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
             <form onSubmit={handleSaveStoreItem} className="mt-4 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Component Name</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Component Name *</label>
                   <input
                     type="text"
                     required
+                    placeholder="e.g. 10k Ohm Metal Film Resistor 1/4W"
                     value={editingStoreItem.name}
                     onChange={(e) => setEditingStoreItem({ ...editingStoreItem, name: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Category</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Category *</label>
                   <select
                     value={editingStoreItem.category}
                     onChange={(e) => setEditingStoreItem({ ...editingStoreItem, category: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
                   >
                     {storeCategories.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.label}
+                        {c.label} ({c.id})
                       </option>
                     ))}
                   </select>
@@ -359,30 +396,33 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Selling Price (₹)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Selling Price (₹) *</label>
                   <input
                     type="number"
                     required
+                    min={0}
                     value={editingStoreItem.price}
                     onChange={(e) => setEditingStoreItem({ ...editingStoreItem, price: Number(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Original Price (₹)</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Original Price (₹)</label>
                   <input
                     type="number"
+                    min={0}
                     value={editingStoreItem.originalPrice || ''}
                     onChange={(e) => setEditingStoreItem({ ...editingStoreItem, originalPrice: Number(e.target.value) })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Stock Quantity</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Stock Quantity *</label>
                   <input
                     type="number"
+                    min={0}
                     value={editingStoreItem.stock}
                     onChange={(e) =>
                       setEditingStoreItem({
@@ -391,35 +431,92 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                         inStock: Number(e.target.value) > 0,
                       })
                     }
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">SKU Code</label>
+                  <input
+                    type="text"
+                    value={editingStoreItem.sku || ''}
+                    onChange={(e) => setEditingStoreItem({ ...editingStoreItem, sku: e.target.value })}
+                    placeholder="e.g. OV-RES-10K"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Badge Tag</label>
+                  <input
+                    type="text"
+                    value={editingStoreItem.badge || ''}
+                    onChange={(e) => setEditingStoreItem({ ...editingStoreItem, badge: e.target.value })}
+                    placeholder="e.g. High Precision, In Stock, Bestseller"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1">Component Image URL</label>
-                <input
-                  type="text"
-                  value={editingStoreItem.image}
-                  onChange={(e) => setEditingStoreItem({ ...editingStoreItem, image: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-emerald-500"
+                <label className="block text-xs font-bold text-slate-700 mb-1">Short Summary / Description</label>
+                <textarea
+                  rows={2}
+                  value={editingStoreItem.shortDesc || ''}
+                  onChange={(e) => setEditingStoreItem({ ...editingStoreItem, shortDesc: e.target.value })}
+                  placeholder="Brief description of the component..."
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
                 />
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Technical Specifications & Key Features (Enter 1 per line)
+                </label>
+                <textarea
+                  rows={4}
+                  value={specsInputText}
+                  onChange={(e) => setSpecsInputText(e.target.value)}
+                  placeholder="Resistance: 10k Ohm ±1%&#10;Power Rating: 0.25W (1/4 Watt)&#10;Package: Through Hole THT&#10;Max Operating Voltage: 250V"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-mono"
+                />
+                <p className="text-[10px] text-slate-400 mt-0.5">
+                  Write each specification or feature on a separate line.
+                </p>
+              </div>
+
+              <div>
+                <ImageUploaderManager
+                  images={editingStoreItem.images || (editingStoreItem.image ? [editingStoreItem.image] : [])}
+                  image={editingStoreItem.image}
+                  onChange={(urls, primary) =>
+                    setEditingStoreItem({
+                      ...editingStoreItem,
+                      images: urls,
+                      image: primary || editingStoreItem.image || '',
+                    })
+                  }
+                  accentColor="emerald"
+                  label="Component Media & Images"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => {
                     setStoreItemModalOpen(false);
                     setEditingStoreItem(null);
                   }}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-600/20 flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm shadow-emerald-600/20 flex items-center gap-1.5"
                 >
                   <Save className="w-4 h-4" />
                   <span>Save Component</span>

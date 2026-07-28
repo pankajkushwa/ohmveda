@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Cpu, Menu, X, ArrowRight, Zap, ShoppingCart, User, LogOut, ChevronDown, ChevronRight, Layers, Radio, Activity, Smartphone, Wrench, Wifi, Monitor, Package, ShieldCheck } from 'lucide-react';
-import { UserProfile } from '../types';
+import { Cpu, Menu, X, ArrowRight, Zap, ShoppingCart, User, LogOut, ChevronDown, ChevronRight, Layers, Radio, Activity, Smartphone, Wrench, Wifi, Monitor, Package, ShieldCheck, Box } from 'lucide-react';
+import { ProductCategory, TurnkeyProduct, UserProfile } from '../types';
 import { OhmVedaLogo } from './OhmVedaLogo';
 import { isAuthorizedAdminEmail } from '../services/dataStorage';
 
@@ -19,6 +19,8 @@ interface HeaderProps {
   onOpenCart: () => void;
   onOpenAuth: () => void;
   onLogout: () => void;
+  products?: TurnkeyProduct[];
+  productCategories?: ProductCategory[];
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -31,6 +33,8 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenCart,
   onOpenAuth,
   onLogout,
+  products = [],
+  productCategories = [],
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileProductsOpen, setMobileProductsOpen] = useState(false);
@@ -48,123 +52,95 @@ export const Header: React.FC<HeaderProps> = ({
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Dedicated Products Categories (Components live strictly in Store)
-  const productCategories = [
-    {
-      id: 'gateways',
-      title: 'IoT Edge Gateways & Hubs',
-      desc: 'RS485 Modbus, CAN Bus, Wi-Fi & 4G LTE cellular hubs',
-      icon: Radio,
-      badge: 'Gateways',
-      page: 'products' as const,
-      items: [
-        {
-          id: 'ov-gateway-x1',
-          title: 'OhmVeda Edge IoT Gateway X1',
-          desc: 'RS485 Modbus, CAN Bus, Wi-Fi & 4G LTE Edge Hub',
-          sku: 'OV-HW-X1',
-          page: 'products' as const,
-          productId: 'ov-gateway-x1',
-          icon: Radio,
-        },
-        {
-          id: 'ov-modbus-hub',
-          title: 'Compact Modbus RTU Edge Controller',
-          desc: 'DIN Rail dual-serial industrial telemetry hub',
-          sku: 'OV-HW-MB1',
-          page: 'products' as const,
-          productId: 'ov-modbus-hub',
-          icon: Radio,
-        },
-      ],
-    },
-    {
-      id: 'sensing',
-      title: 'Wireless Sensing & Field Nodes',
-      desc: 'LoRaWAN & BLE environmental & remote field telemetry',
-      icon: Activity,
-      badge: 'Sensing',
-      page: 'products' as const,
-      items: [
-        {
-          id: 'ov-smart-node',
-          title: 'Wireless Environmental Sensing Node',
-          desc: 'LoRaWAN ultra-low power sensor field node',
-          sku: 'OV-HW-SENS',
-          page: 'products' as const,
-          productId: 'ov-smart-node',
-          icon: Activity,
-        },
-        {
-          id: 'ov-solar-telemetry',
-          title: 'Solar Remote Field Telemetry System',
-          desc: 'IP67 weatherproof sealed solar monitoring station',
-          sku: 'OV-HW-SOLAR',
-          page: 'products' as const,
-          productId: 'ov-solar-telemetry',
-          icon: Activity,
-        },
-      ],
-    },
-    {
-      id: 'telematics',
-      title: 'Automotive & Fleet Telematics',
-      desc: 'GPS CAN Bus diagnostics, fleet tracking & OBD-II hubs',
-      icon: Smartphone,
-      badge: 'Fleet',
-      page: 'products' as const,
-      items: [
-        {
-          id: 'ov-fleet-tracker',
-          title: 'Smart OBD-II Fleet Telemetry Hub',
-          desc: 'Automotive GPS CAN Bus diagnostic tracker',
-          sku: 'OV-HW-FLEET',
-          page: 'products' as const,
-          productId: 'ov-fleet-tracker',
-          icon: Smartphone,
-        },
-        {
-          id: 'ov-asset-beacon',
-          title: 'High-Precision GNSS Asset Beacon',
-          desc: 'Geo-fencing, shock & tamper tracking beacon',
-          sku: 'OV-HW-BEACON',
-          page: 'products' as const,
-          productId: 'ov-asset-beacon',
-          icon: Smartphone,
-        },
-      ],
-    },
-    {
-      id: 'automation',
-      title: 'Industrial Embedded Controllers',
-      desc: 'Programmable logic controllers & heavy motor drive systems',
-      icon: Cpu,
-      badge: 'Automation',
-      page: 'products' as const,
-      items: [
-        {
-          id: 'ov-custom-controller',
-          title: 'Custom Embedded Automation Board',
-          desc: 'PLC alternative with 8x optically isolated relays',
-          sku: 'OV-HW-PLC',
-          page: 'products' as const,
-          productId: 'ov-custom-controller',
-          icon: Cpu,
-        },
-        {
-          id: 'ov-motor-drive-sys',
-          title: 'Industrial Motor Drive Controller',
-          desc: 'Dual-bridge heavy duty motor PLC system',
-          sku: 'OV-HW-DRIVE',
-          page: 'products' as const,
-          productId: 'ov-motor-drive-sys',
-          icon: Wrench,
-        },
-      ],
-    },
-  ];
+  // Dynamically compute product categories and their nested product items from live state
+  const navProductCategories = React.useMemo(() => {
+    if (!products || products.length === 0) {
+      return [];
+    }
 
-  const currentCategoryObj = productCategories.find((c) => c.id === activeCategory) || productCategories[0];
+    const defaultCategories = [
+      { id: 'gateways', label: 'IoT Edge Gateways & Hubs' },
+      { id: 'sensing', label: 'Wireless Sensing & Field Nodes' },
+      { id: 'telematics', label: 'Automotive & Fleet Telematics' },
+      { id: 'automation', label: 'Industrial Embedded Controllers' },
+    ];
+
+    const catList = productCategories && productCategories.length > 0
+      ? productCategories
+      : defaultCategories;
+
+    const categoryMap: Record<string, { id: string; title: string; desc: string; icon: any; badge: string; page: 'products'; items: any[] }> = {};
+
+    catList.forEach((c) => {
+      const catId = c.id;
+      const label = 'label' in c ? (c as any).label : (c as any).title || c.id;
+      categoryMap[catId] = {
+        id: catId,
+        title: label,
+        desc: c.description || 'Hardware product category',
+        icon: catId === 'gateways' ? Radio : catId === 'sensing' ? Activity : catId === 'telematics' ? Smartphone : Cpu,
+        badge: label.split(' ')[0],
+        page: 'products',
+        items: [],
+      };
+    });
+
+    products.forEach((p) => {
+      const groupKey = p.categoryGroup || p.category;
+      let matchedKey = groupKey && categoryMap[groupKey] ? groupKey : null;
+
+      if (!matchedKey && p.category) {
+        matchedKey = Object.keys(categoryMap).find(
+          (k) => categoryMap[k].title.toLowerCase() === p.category.toLowerCase()
+        ) || null;
+      }
+
+      if (matchedKey) {
+        categoryMap[matchedKey].items.push({
+          id: p.id,
+          title: p.title,
+          desc: p.shortDesc,
+          sku: p.sku,
+          page: 'products' as const,
+          productId: p.id,
+          icon: categoryMap[matchedKey].icon,
+        });
+      } else {
+        const fallbackId = groupKey || 'other';
+        if (!categoryMap[fallbackId]) {
+          categoryMap[fallbackId] = {
+            id: fallbackId,
+            title: p.category || 'Other Products',
+            desc: 'Hardware platform products',
+            icon: Box,
+            badge: 'Products',
+            page: 'products',
+            items: [],
+          };
+        }
+        categoryMap[fallbackId].items.push({
+          id: p.id,
+          title: p.title,
+          desc: p.shortDesc,
+          sku: p.sku,
+          page: 'products' as const,
+          productId: p.id,
+          icon: Box,
+        });
+      }
+    });
+
+    return Object.values(categoryMap).filter((c) => c.items.length > 0);
+  }, [products, productCategories]);
+
+  // Keep activeCategory pointing to a valid category in navProductCategories
+  useEffect(() => {
+    if (navProductCategories.length > 0 && !navProductCategories.some((c) => c.id === activeCategory)) {
+      setActiveCategory(navProductCategories[0].id);
+    }
+  }, [navProductCategories, activeCategory]);
+
+  const currentCategoryObj = navProductCategories.find((c) => c.id === activeCategory) || navProductCategories[0];
 
   const handleNavClick = (page: 'home' | 'products' | 'store' | 'careers' | 'admin', sectionId: string = 'hero') => {
     setMobileMenuOpen(false);
@@ -183,7 +159,7 @@ export const Header: React.FC<HeaderProps> = ({
     onNavigate('products', 'products', { productId: item.productId });
   };
 
-  const handleCategoryNav = (cat: typeof productCategories[0]) => {
+  const handleCategoryNav = (cat: { id: string; title: string }) => {
     setMobileMenuOpen(false);
     setProductsHover(false);
     onNavigate('products', 'products');
@@ -242,148 +218,166 @@ export const Header: React.FC<HeaderProps> = ({
               {/* Products Submenu Cascading Flyout Dropdown Panel */}
               {productsHover && (
                 <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-[760px] animate-in fade-in slide-in-from-top-2 duration-150 z-50">
-                  <div className="bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl text-slate-100 flex divide-x divide-slate-800/80 overflow-hidden min-h-[380px]">
-                    
-                    {/* Primary Left Column: Categories List */}
-                    <div className="w-[320px] p-3 space-y-1 bg-slate-950/90 shrink-0">
-                      <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-400 font-mono flex items-center justify-between border-b border-slate-800/80 mb-1">
-                        <span className="flex items-center gap-1.5">
-                          <Layers className="w-3 h-3 text-blue-400" />
-                          <span>Product Categories</span>
-                        </span>
-                        <span className="text-[9px] text-slate-500 font-normal">Hover to expand</span>
-                      </div>
-
-                      {productCategories.map((cat, idx) => {
-                        const Icon = cat.icon;
-                        const isActive = activeCategory === cat.id;
-
-                        return (
-                          <motion.button
-                            key={cat.id}
-                            initial={{ opacity: 0, x: -6 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ duration: 0.15, delay: idx * 0.02 }}
-                            whileHover={{ x: 3 }}
-                            onMouseEnter={() => setActiveCategory(cat.id)}
-                            onClick={() => handleCategoryNav(cat)}
-                            className={`w-full text-left px-3 py-2.5 rounded-xl transition-all duration-150 flex items-center justify-between group cursor-pointer ${
-                              isActive
-                                ? 'bg-blue-600 text-white shadow-md'
-                                : 'hover:bg-slate-900 text-slate-300'
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <div
-                                className={`p-1.5 rounded-lg shrink-0 transition-colors ${
-                                  isActive
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-slate-900 border border-slate-800 text-blue-400 group-hover:bg-blue-600 group-hover:text-white'
-                                }`}
-                              >
-                                <Icon className="w-4 h-4" />
-                              </div>
-                              <span
-                                className={`text-xs font-bold truncate ${
-                                  isActive ? 'text-white' : 'text-slate-100 group-hover:text-blue-400'
-                                }`}
-                              >
-                                {cat.title}
-                              </span>
-                            </div>
-
-                            <ChevronRight
-                              className={`w-4 h-4 transition-transform shrink-0 ${
-                                isActive
-                                  ? 'text-white translate-x-0.5'
-                                  : 'text-slate-600 group-hover:text-slate-300'
-                              }`}
-                            />
-                          </motion.button>
-                        );
-                      })}
-                    </div>
-
-                    {/* Secondary Right Column: Animated Product Scroll Panel Showing Only Product Names */}
-                    <div className="w-[440px] p-4 bg-slate-900/95 flex flex-col justify-between">
+                  {navProductCategories.length === 0 ? (
+                    <div className="bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl p-8 text-center text-slate-100 space-y-3">
+                      <Box className="w-10 h-10 text-slate-600 mx-auto" />
                       <div>
-                        {/* Header of Active Category */}
-                        <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs font-black text-white tracking-wide uppercase">
-                              {currentCategoryObj.title}
-                            </span>
-                            <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-blue-950 text-blue-400 border border-blue-800/80">
-                              {currentCategoryObj.items.length} Products
-                            </span>
-                          </div>
-
-                          <button
-                            onClick={() => handleCategoryNav(currentCategoryObj)}
-                            className="text-[11px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 hover:underline transition-colors"
-                          >
-                            <span>View All</span>
-                            <ArrowRight className="w-3 h-3" />
-                          </button>
-                        </div>
-
-                        {/* Animated Product Names List */}
-                        <div className="space-y-1.5 max-h-[310px] overflow-y-auto pr-1">
-                          <AnimatePresence mode="wait">
-                            <motion.div
-                              key={currentCategoryObj.id}
-                              initial={{ opacity: 0, y: 6 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, y: -6 }}
-                              transition={{ duration: 0.18 }}
-                              className="space-y-1.5"
-                            >
-                              {currentCategoryObj.items.map((item, index) => {
-                                return (
-                                  <motion.button
-                                    key={item.id}
-                                    initial={{ opacity: 0, x: -8 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ duration: 0.15, delay: index * 0.03 }}
-                                    whileHover={{ x: 4 }}
-                                    onClick={() => handleItemClick(item)}
-                                    className="w-full text-left px-3.5 py-2.5 rounded-xl bg-slate-950/90 hover:bg-slate-800 border border-slate-800/80 hover:border-blue-500/50 transition-all flex items-center justify-between group/item shadow-xs hover:shadow-md cursor-pointer"
-                                  >
-                                    <div className="flex items-center gap-2.5 min-w-0">
-                                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500 group-hover/item:scale-125 group-hover/item:bg-blue-400 transition-all shrink-0" />
-                                      <span className="text-xs font-bold text-slate-100 group-hover/item:text-blue-400 transition-colors truncate">
-                                        {item.title}
-                                      </span>
-                                    </div>
-
-                                    <ChevronRight className="w-4 h-4 text-slate-600 group-hover/item:text-blue-400 group-hover/item:translate-x-0.5 transition-all shrink-0" />
-                                  </motion.button>
-                                );
-                              })}
-                            </motion.div>
-                          </AnimatePresence>
-                        </div>
-                      </div>
-
-                      {/* Footer info line */}
-                      <div className="pt-3 border-t border-slate-800/80 mt-2 flex items-center justify-between text-[11px] text-slate-400">
-                        <span className="flex items-center gap-1">
-                          <Radio className="w-3.5 h-3.5 text-blue-400" />
-                          <span>OhmVeda Telematics Systems</span>
-                        </span>
-                        <button
-                          onClick={() => {
-                            setProductsHover(false);
-                            onOpenInquiry(currentCategoryObj.title);
-                          }}
-                          className="text-blue-400 font-bold hover:underline"
-                        >
-                          Request Custom Specs
-                        </button>
+                        <p className="text-sm font-bold text-slate-200">Products Catalog Empty</p>
+                        <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                          No hardware products are currently listed in the catalog. You can add new products in the Admin Dashboard.
+                        </p>
                       </div>
                     </div>
+                  ) : (
+                    <div className="bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl text-slate-100 flex divide-x divide-slate-800/80 overflow-hidden min-h-[380px]">
+                      
+                      {/* Primary Left Column: Categories List */}
+                      <div className="w-[320px] p-3 space-y-1 bg-slate-950/90 shrink-0">
+                        <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-400 font-mono flex items-center justify-between border-b border-slate-800/80 mb-1">
+                          <span className="flex items-center gap-1.5">
+                            <Layers className="w-3 h-3 text-blue-400" />
+                            <span>Product Categories</span>
+                          </span>
+                          <span className="text-[9px] text-slate-500 font-normal">Hover to expand</span>
+                        </div>
 
-                  </div>
+                        {navProductCategories.map((cat, idx) => {
+                          const Icon = cat.icon || Box;
+                          const isActive = activeCategory === cat.id;
+
+                          return (
+                            <motion.button
+                              key={cat.id}
+                              initial={{ opacity: 0, x: -6 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.15, delay: idx * 0.02 }}
+                              whileHover={{ x: 3 }}
+                              onMouseEnter={() => setActiveCategory(cat.id)}
+                              onClick={() => handleCategoryNav(cat)}
+                              className={`w-full text-left px-3 py-2.5 rounded-xl transition-all duration-150 flex items-center justify-between group cursor-pointer ${
+                                isActive
+                                  ? 'bg-blue-600 text-white shadow-md'
+                                  : 'hover:bg-slate-900 text-slate-300'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <div
+                                  className={`p-1.5 rounded-lg shrink-0 transition-colors ${
+                                    isActive
+                                      ? 'bg-blue-500 text-white'
+                                      : 'bg-slate-900 border border-slate-800 text-blue-400 group-hover:bg-blue-600 group-hover:text-white'
+                                  }`}
+                                >
+                                  <Icon className="w-4 h-4" />
+                                </div>
+                                <span
+                                  className={`text-xs font-bold truncate ${
+                                    isActive ? 'text-white' : 'text-slate-100 group-hover:text-blue-400'
+                                  }`}
+                                >
+                                  {cat.title}
+                                </span>
+                              </div>
+
+                              <ChevronRight
+                                className={`w-4 h-4 transition-transform shrink-0 ${
+                                  isActive
+                                    ? 'text-white translate-x-0.5'
+                                    : 'text-slate-600 group-hover:text-slate-300'
+                                }`}
+                              />
+                            </motion.button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Secondary Right Column: Animated Product Scroll Panel Showing Only Product Names */}
+                      <div className="w-[440px] p-4 bg-slate-900/95 flex flex-col justify-between">
+                        <div>
+                          {/* Header of Active Category */}
+                          {currentCategoryObj && (
+                            <>
+                              <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs font-black text-white tracking-wide uppercase">
+                                    {currentCategoryObj.title}
+                                  </span>
+                                  <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-blue-950 text-blue-400 border border-blue-800/80">
+                                    {currentCategoryObj.items.length} Products
+                                  </span>
+                                </div>
+
+                                <button
+                                  onClick={() => handleCategoryNav(currentCategoryObj)}
+                                  className="text-[11px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 hover:underline transition-colors"
+                                >
+                                  <span>View All</span>
+                                  <ArrowRight className="w-3 h-3" />
+                                </button>
+                              </div>
+
+                              {/* Animated Product Names List */}
+                              <div className="space-y-1.5 max-h-[310px] overflow-y-auto pr-1">
+                                <AnimatePresence mode="wait">
+                                  <motion.div
+                                    key={currentCategoryObj.id}
+                                    initial={{ opacity: 0, y: 6 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -6 }}
+                                    transition={{ duration: 0.18 }}
+                                    className="space-y-1.5"
+                                  >
+                                    {currentCategoryObj.items.map((item, index) => {
+                                      return (
+                                        <motion.button
+                                          key={item.id}
+                                          initial={{ opacity: 0, x: -8 }}
+                                          animate={{ opacity: 1, x: 0 }}
+                                          transition={{ duration: 0.15, delay: index * 0.03 }}
+                                          whileHover={{ x: 4 }}
+                                          onClick={() => handleItemClick(item)}
+                                          className="w-full text-left px-3.5 py-2.5 rounded-xl bg-slate-950/90 hover:bg-slate-800 border border-slate-800/80 hover:border-blue-500/50 transition-all flex items-center justify-between group/item shadow-xs hover:shadow-md cursor-pointer"
+                                        >
+                                          <div className="flex items-center gap-2.5 min-w-0">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 group-hover/item:scale-125 group-hover/item:bg-blue-400 transition-all shrink-0" />
+                                            <span className="text-xs font-bold text-slate-100 group-hover/item:text-blue-400 transition-colors truncate">
+                                              {item.title}
+                                            </span>
+                                          </div>
+
+                                          <ChevronRight className="w-4 h-4 text-slate-600 group-hover/item:text-blue-400 group-hover/item:translate-x-0.5 transition-all shrink-0" />
+                                        </motion.button>
+                                      );
+                                    })}
+                                  </motion.div>
+                                </AnimatePresence>
+                              </div>
+                            </>
+                          )}
+                        </div>
+
+                        {/* Footer info line */}
+                        {currentCategoryObj && (
+                          <div className="pt-3 border-t border-slate-800/80 mt-2 flex items-center justify-between text-[11px] text-slate-400">
+                            <span className="flex items-center gap-1">
+                              <Radio className="w-3.5 h-3.5 text-blue-400" />
+                              <span>OhmVeda Telematics Systems</span>
+                            </span>
+                            <button
+                              onClick={() => {
+                                setProductsHover(false);
+                                onOpenInquiry(currentCategoryObj.title);
+                              }}
+                              className="text-blue-400 font-bold hover:underline"
+                            >
+                              Request Custom Specs
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -570,36 +564,42 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Mobile Expandable Categories */}
             {mobileProductsOpen && (
               <div className="col-span-2 space-y-3 bg-slate-900/90 p-3 rounded-xl border border-slate-800">
-                {productCategories.map((cat) => {
-                  const CatIcon = cat.icon;
-                  return (
-                    <div key={cat.id} className="space-y-1">
-                      <button
-                        onClick={() => handleCategoryNav(cat)}
-                        className="w-full text-left py-1.5 px-2 text-xs font-extrabold text-blue-400 hover:text-white flex items-center justify-between border-b border-slate-800/80"
-                      >
-                        <span className="flex items-center gap-1.5">
-                          <CatIcon className="w-3.5 h-3.5" />
-                          <span>{cat.title}</span>
-                        </span>
-                        <ArrowRight className="w-3 h-3 text-slate-500" />
-                      </button>
+                {navProductCategories.length === 0 ? (
+                  <div className="p-3 text-center text-slate-400 text-xs">
+                    No products available in catalog.
+                  </div>
+                ) : (
+                  navProductCategories.map((cat) => {
+                    const CatIcon = cat.icon || Box;
+                    return (
+                      <div key={cat.id} className="space-y-1">
+                        <button
+                          onClick={() => handleCategoryNav(cat)}
+                          className="w-full text-left py-1.5 px-2 text-xs font-extrabold text-blue-400 hover:text-white flex items-center justify-between border-b border-slate-800/80"
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <CatIcon className="w-3.5 h-3.5" />
+                            <span>{cat.title}</span>
+                          </span>
+                          <ArrowRight className="w-3 h-3 text-slate-500" />
+                        </button>
 
-                      <div className="pl-3 space-y-1 pt-1">
-                        {cat.items.map((sub) => (
-                          <button
-                            key={sub.id}
-                            onClick={() => handleItemClick(sub)}
-                            className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-slate-800 text-[11px] font-medium text-slate-300 flex items-center justify-between group"
-                          >
-                            <span className="truncate group-hover:text-blue-400 transition-colors">{sub.title}</span>
-                            <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-blue-400 shrink-0" />
-                          </button>
-                        ))}
+                        <div className="pl-3 space-y-1 pt-1">
+                          {cat.items.map((sub: any) => (
+                            <button
+                              key={sub.id}
+                              onClick={() => handleItemClick(sub)}
+                              className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-slate-800 text-[11px] font-medium text-slate-300 flex items-center justify-between group"
+                            >
+                              <span className="truncate group-hover:text-blue-400 transition-colors">{sub.title}</span>
+                              <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-blue-400 shrink-0" />
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })
+                )}
               </div>
             )}
 

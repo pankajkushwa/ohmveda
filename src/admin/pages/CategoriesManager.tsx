@@ -48,7 +48,7 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
     const newCat: ProductCategory = {
       id: catId,
       label: newProdCatLabel.trim(),
-      description: newProdCatDesc.trim() || 'Turnkey hardware catalog category.',
+      description: newProdCatDesc.trim() || 'Products catalog category.',
     };
 
     const updated = [...productCategories, newCat];
@@ -57,7 +57,7 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
     addAdminLog({
       action: 'ADD',
       target: 'CATEGORY',
-      title: `Added Hardware Category: ${newCat.label}`,
+      title: `Added Product Category: ${newCat.label}`,
       details: `ID: ${newCat.id}`,
     });
 
@@ -78,7 +78,7 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
         addAdminLog({
           action: 'DELETE',
           target: 'CATEGORY',
-          title: `Deleted Hardware Category: ${label}`,
+          title: `Deleted Product Category: ${label}`,
           details: `ID: ${id}`,
         });
         showToast(`Category "${label}" deleted.`, 'success');
@@ -144,49 +144,49 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
   return (
     <div className="space-y-8">
       {/* Page Header */}
-      <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
-        <h1 className="text-lg font-bold text-white flex items-center gap-2">
-          <Layers className="w-5 h-5 text-purple-400" />
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+        <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+          <Layers className="w-5 h-5 text-purple-600" />
           <span>Category Taxonomy Manager</span>
         </h1>
-        <p className="text-xs text-slate-400 mt-0.5">
+        <p className="text-xs text-slate-500 mt-0.5">
           Define catalog product groupings and electronics component store filters
         </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Hardware Catalog Categories */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-              <Box className="w-4 h-4 text-blue-400" />
-              <span>Hardware Product Categories</span>
+        {/* Product Categories */}
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Box className="w-4 h-4 text-blue-600" />
+              <span>Product Categories</span>
             </h2>
-            <span className="text-[10px] font-bold bg-blue-500/10 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/20">
+            <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full border border-blue-200">
               {productCategories.length} Categories
             </span>
           </div>
 
-          <form onSubmit={handleAddProductCategory} className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-2">
-            <div className="text-[11px] font-bold text-slate-300">Add New Product Category</div>
+          <form onSubmit={handleAddProductCategory} className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2.5">
+            <div className="text-[11px] font-bold text-slate-800">Add New Product Category</div>
             <input
               type="text"
               required
               placeholder="Category Name (e.g. Smart Sensor Nodes)"
               value={newProdCatLabel}
               onChange={(e) => setNewProdCatLabel(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500"
             />
             <input
               type="text"
               placeholder="Short Description (Optional)"
               value={newProdCatDesc}
               onChange={(e) => setNewProdCatDesc(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500"
             />
             <button
               type="submit"
-              className="w-full py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+              className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
             >
               <Plus className="w-4 h-4" />
               <span>Create Product Category</span>
@@ -197,16 +197,16 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
             {productCategories.map((c) => (
               <div
                 key={c.id}
-                className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center justify-between gap-3 group"
+                className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3 group"
               >
                 <div>
-                  <p className="text-xs font-bold text-slate-200">{c.label}</p>
+                  <p className="text-xs font-bold text-slate-900">{c.label}</p>
                   <p className="text-[10px] text-slate-500">{c.description}</p>
-                  <p className="text-[9px] text-slate-600 font-mono mt-0.5">ID: {c.id}</p>
+                  <p className="text-[9px] text-slate-400 font-mono mt-0.5">ID: {c.id}</p>
                 </div>
                 <button
                   onClick={() => handleDeleteProductCategory(c.id, c.label)}
-                  className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors opacity-80 group-hover:opacity-100"
+                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   title="Delete Category"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
@@ -217,37 +217,37 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
         </div>
 
         {/* Electronics Store Component Categories */}
-        <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
-              <Cpu className="w-4 h-4 text-emerald-400" />
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-xs">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <Cpu className="w-4 h-4 text-emerald-600" />
               <span>Store Component Categories</span>
             </h2>
-            <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full border border-emerald-500/20">
+            <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full border border-emerald-200">
               {storeCategories.length} Categories
             </span>
           </div>
 
-          <form onSubmit={handleAddStoreCategory} className="bg-slate-950 p-3 rounded-xl border border-slate-800/80 space-y-2">
-            <div className="text-[11px] font-bold text-slate-300">Add New Store Component Category</div>
+          <form onSubmit={handleAddStoreCategory} className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 space-y-2.5">
+            <div className="text-[11px] font-bold text-slate-800">Add New Store Component Category</div>
             <input
               type="text"
               required
-              placeholder="Category Name (e.g. Wireless Modules)"
+              placeholder="Category Name (e.g. Resistors)"
               value={newStoreCatLabel}
               onChange={(e) => setNewStoreCatLabel(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500"
             />
             <input
               type="text"
               placeholder="Description (Optional)"
               value={newStoreCatDesc}
               onChange={(e) => setNewStoreCatDesc(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500"
+              className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500"
             />
             <button
               type="submit"
-              className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+              className="w-full py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-xs"
             >
               <Plus className="w-4 h-4" />
               <span>Create Store Category</span>
@@ -258,16 +258,16 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
             {storeCategories.map((c) => (
               <div
                 key={c.id}
-                className="p-3 bg-slate-950/60 border border-slate-800 rounded-xl flex items-center justify-between gap-3 group"
+                className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3 group"
               >
                 <div>
-                  <p className="text-xs font-bold text-slate-200">{c.label}</p>
+                  <p className="text-xs font-bold text-slate-900">{c.label}</p>
                   <p className="text-[10px] text-slate-500">{c.description}</p>
-                  <p className="text-[9px] text-slate-600 font-mono mt-0.5">ID: {c.id}</p>
+                  <p className="text-[9px] text-slate-400 font-mono mt-0.5">ID: {c.id}</p>
                 </div>
                 <button
                   onClick={() => handleDeleteStoreCategory(c.id, c.label)}
-                  className="p-1.5 text-slate-500 hover:text-red-400 hover:bg-red-950/40 rounded-lg transition-colors opacity-80 group-hover:opacity-100"
+                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                   title="Delete Category"
                 >
                   <Trash2 className="w-3.5 h-3.5" />

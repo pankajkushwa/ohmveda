@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Briefcase, Plus, Edit3, Trash2, FileText, Users, Eye, CheckCircle2, AlertTriangle, X, Save, Clock, MapPin, Award, ExternalLink
+  Briefcase, Plus, Edit3, Trash2, FileText, Users, Eye, CheckCircle2, AlertTriangle, X, Save, Clock, MapPin, Award, ExternalLink, Download, Mail, Phone
 } from 'lucide-react';
 import { JobApplication, JobRole } from '../../types';
 import { 
@@ -32,6 +32,11 @@ export const CareersAndApplicantsManager: React.FC<CareersAndApplicantsManagerPr
   const [jobAppsList, setJobAppsList] = useState<JobApplication[]>(getStoredJobApplications());
   const [selectedAppDetail, setSelectedAppDetail] = useState<JobApplication | null>(null);
 
+  // Helper form inputs
+  const [responsibilitiesText, setResponsibilitiesText] = useState('');
+  const [requirementsText, setRequirementsText] = useState('');
+  const [skillsText, setSkillsText] = useState('');
+
   // --- JOB ROLES CRUD ---
   const handleOpenAddJobRole = () => {
     const newJob: JobRole = {
@@ -57,11 +62,17 @@ export const CareersAndApplicantsManager: React.FC<CareersAndApplicantsManagerPr
       postedDate: new Date().toISOString().split('T')[0],
     };
     setEditingJob(newJob);
+    setResponsibilitiesText(newJob.responsibilities.join('\n'));
+    setRequirementsText(newJob.requirements.join('\n'));
+    setSkillsText(newJob.keySkills.join(', '));
     setJobModalOpen(true);
   };
 
   const handleOpenEditJobRole = (job: JobRole) => {
     setEditingJob(JSON.parse(JSON.stringify(job)));
+    setResponsibilitiesText(job.responsibilities ? job.responsibilities.join('\n') : '');
+    setRequirementsText(job.requirements ? job.requirements.join('\n') : '');
+    setSkillsText(job.keySkills ? job.keySkills.join(', ') : '');
     setJobModalOpen(true);
   };
 
@@ -69,27 +80,38 @@ export const CareersAndApplicantsManager: React.FC<CareersAndApplicantsManagerPr
     e.preventDefault();
     if (!editingJob) return;
 
-    const exists = jobRolesList.some((j) => j.id === editingJob.id);
+    const parsedResp = responsibilitiesText.split('\n').map((s) => s.trim()).filter((s) => s.length > 0);
+    const parsedReq = requirementsText.split('\n').map((s) => s.trim()).filter((s) => s.length > 0);
+    const parsedSkills = skillsText.split(',').map((s) => s.trim()).filter((s) => s.length > 0);
+
+    const finalJob: JobRole = {
+      ...editingJob,
+      responsibilities: parsedResp,
+      requirements: parsedReq,
+      keySkills: parsedSkills,
+    };
+
+    const exists = jobRolesList.some((j) => j.id === finalJob.id);
     let updated: JobRole[];
 
     if (exists) {
-      updated = jobRolesList.map((j) => (j.id === editingJob.id ? editingJob : j));
+      updated = jobRolesList.map((j) => (j.id === finalJob.id ? finalJob : j));
       addAdminLog({
         action: 'UPDATE',
         target: 'STORE',
-        title: `Updated Job Role: ${editingJob.title}`,
-        details: `Dept: ${editingJob.department} | Openings: ${editingJob.openingsCount}`,
+        title: `Updated Job Role: ${finalJob.title}`,
+        details: `Dept: ${finalJob.department} | Openings: ${finalJob.openingsCount}`,
       });
-      showToast(`Job opening "${editingJob.title}" saved.`, 'success');
+      showToast(`Job opening "${finalJob.title}" saved.`, 'success');
     } else {
-      updated = [editingJob, ...jobRolesList];
+      updated = [finalJob, ...jobRolesList];
       addAdminLog({
         action: 'ADD',
         target: 'STORE',
-        title: `Added Job Opening: ${editingJob.title}`,
-        details: `Dept: ${editingJob.department} | Openings: ${editingJob.openingsCount}`,
+        title: `Added Job Opening: ${finalJob.title}`,
+        details: `Dept: ${finalJob.department} | Openings: ${finalJob.openingsCount}`,
       });
-      showToast(`New job position "${editingJob.title}" created.`, 'success');
+      showToast(`New job position "${finalJob.title}" created.`, 'success');
     }
 
     setJobRolesList(updated);
@@ -129,26 +151,26 @@ export const CareersAndApplicantsManager: React.FC<CareersAndApplicantsManagerPr
 
   return (
     <div className="space-y-6">
-      {/* Top Bar with Combined Controls */}
-      <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* Top Bar */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            <Briefcase className="w-5 h-5 text-amber-400" />
+          <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Briefcase className="w-5 h-5 text-amber-600" />
             <span>Careers, Positionings & Candidate Applications</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Unified management for job vacancies, job descriptions, and submitted candidate applications
+          <p className="text-xs text-slate-500 mt-0.5">
+            Single page management for job vacancies, job descriptions, and candidate applications
           </p>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex items-center gap-2 bg-slate-950 p-1 rounded-xl border border-slate-800">
+        <div className="flex items-center gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200">
           <button
             onClick={() => setActiveSubTab('positions')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeSubTab === 'positions'
                 ? 'bg-amber-600 text-white shadow-xs'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <Briefcase className="w-3.5 h-3.5" />
@@ -156,10 +178,10 @@ export const CareersAndApplicantsManager: React.FC<CareersAndApplicantsManagerPr
           </button>
           <button
             onClick={() => setActiveSubTab('applications')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+            className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
               activeSubTab === 'applications'
                 ? 'bg-amber-600 text-white shadow-xs'
-                : 'text-slate-400 hover:text-slate-200'
+                : 'text-slate-600 hover:text-slate-900'
             }`}
           >
             <FileText className="w-3.5 h-3.5" />
@@ -172,10 +194,10 @@ export const CareersAndApplicantsManager: React.FC<CareersAndApplicantsManagerPr
       {activeSubTab === 'positions' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-slate-200">Active Job Postings</h2>
+            <h2 className="text-sm font-bold text-slate-900">Active Job Postings</h2>
             <button
               onClick={handleOpenAddJobRole}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-md shadow-amber-600/20 flex items-center gap-1.5"
+              className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-sm shadow-amber-600/20 flex items-center gap-1.5"
             >
               <Plus className="w-4 h-4" />
               <span>Create Job Opening</span>
@@ -186,56 +208,56 @@ export const CareersAndApplicantsManager: React.FC<CareersAndApplicantsManagerPr
             {jobRolesList.map((job) => (
               <div
                 key={job.id}
-                className="bg-slate-900/80 border border-slate-800 hover:border-slate-700 rounded-2xl p-4 flex flex-col justify-between transition-all"
+                className="bg-white border border-slate-200 hover:border-slate-300 rounded-2xl p-5 flex flex-col justify-between transition-all shadow-xs"
               >
                 <div>
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                    <span className="px-2.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200">
                       {job.department}
                     </span>
                     <span
-                      className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                      className={`px-2.5 py-0.5 rounded-md text-[10px] font-bold ${
                         job.isActive
-                          ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                          : 'bg-slate-800 text-slate-500'
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                          : 'bg-slate-100 text-slate-500'
                       }`}
                     >
                       {job.isActive ? 'Active Hiring' : 'Paused'}
                     </span>
                   </div>
 
-                  <h3 className="text-sm font-bold text-white mb-1">{job.title}</h3>
-                  <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-3">
+                  <h3 className="text-base font-bold text-slate-900 mb-1">{job.title}</h3>
+                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-3">
                     {job.description}
                   </p>
 
-                  <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-400 bg-slate-950/60 p-2.5 rounded-xl border border-slate-800/80">
+                  <div className="grid grid-cols-2 gap-2 text-[11px] text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200">
                     <div className="flex items-center gap-1">
-                      <MapPin className="w-3 h-3 text-slate-500 shrink-0" />
+                      <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span className="truncate">{job.location}</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <Award className="w-3 h-3 text-slate-500 shrink-0" />
+                      <Award className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       <span>{job.experience}</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                <div className="mt-4 pt-3 border-t border-slate-200 flex items-center justify-between">
                   <div className="text-[10px] text-slate-500">
-                    Posted: <span className="text-slate-400">{job.postedDate}</span>
+                    Posted: <span className="text-slate-700 font-medium">{job.postedDate}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => handleOpenEditJobRole(job)}
-                      className="p-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg border border-slate-700"
+                      className="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg border border-slate-200"
                       title="Edit Job Role"
                     >
-                      <Edit3 className="w-3.5 h-3.5 text-blue-400" />
+                      <Edit3 className="w-3.5 h-3.5 text-blue-600" />
                     </button>
                     <button
                       onClick={() => handleDeleteJobRole(job.id, job.title)}
-                      className="p-1.5 bg-red-950/40 hover:bg-red-900/60 text-red-400 border border-red-800/40 rounded-lg"
+                      className="p-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 rounded-lg"
                       title="Delete Job Role"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -246,7 +268,7 @@ export const CareersAndApplicantsManager: React.FC<CareersAndApplicantsManagerPr
             ))}
 
             {jobRolesList.length === 0 && (
-              <div className="col-span-full py-10 text-center text-slate-500 bg-slate-900/40 rounded-2xl border border-slate-800">
+              <div className="col-span-full py-12 text-center text-slate-500 bg-white rounded-2xl border border-slate-200">
                 No job roles created yet.
               </div>
             )}
@@ -254,81 +276,78 @@ export const CareersAndApplicantsManager: React.FC<CareersAndApplicantsManagerPr
         </div>
       )}
 
-      {/* SUB-SECTION 2: CANDIDATE APPLICATIONS */}
+      {/* SUB-SECTION 2: APPLICANTS LIST */}
       {activeSubTab === 'applications' && (
-        <div className="space-y-4">
-          <h2 className="text-sm font-bold text-slate-200">Received Candidate Resumes & Applications</h2>
-
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-950/60 border-b border-slate-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
-                    <th className="py-3 px-4">Candidate Name</th>
-                    <th className="py-3 px-4">Applied Position</th>
-                    <th className="py-3 px-4">Contact Info</th>
-                    <th className="py-3 px-4">Applied Date</th>
-                    <th className="py-3 px-4">Status</th>
-                    <th className="py-3 px-4 text-right">Actions</th>
+        <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-xs">
+          <h2 className="text-sm font-bold text-slate-900">Submitted Candidate Applications</h2>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="py-3 px-4">Candidate</th>
+                  <th className="py-3 px-4">Applied Position</th>
+                  <th className="py-3 px-4">Experience</th>
+                  <th className="py-3 px-4">Status</th>
+                  <th className="py-3 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs">
+                {jobAppsList.map((app) => (
+                  <tr key={app.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-3.5 px-4">
+                      <div>
+                        <p className="font-bold text-slate-900">{app.fullName}</p>
+                        <p className="text-[10px] text-slate-500">{app.email} • {app.phone}</p>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 text-slate-700 font-medium">{app.jobTitle}</td>
+                    <td className="py-3.5 px-4 text-slate-600">{app.experienceYears || 'N/A'} Years</td>
+                    <td className="py-3.5 px-4">
+                      <select
+                        value={app.status}
+                        onChange={(e) => handleUpdateAppStatus(app.id, e.target.value as any)}
+                        className="bg-slate-50 border border-slate-200 text-slate-800 text-[11px] font-bold rounded-lg px-2.5 py-1 focus:outline-none"
+                      >
+                        <option value="NEW">New</option>
+                        <option value="UNDER_REVIEW">Under Review</option>
+                        <option value="SHORTLISTED">Shortlisted</option>
+                        <option value="INTERVIEWED">Interviewed</option>
+                        <option value="REJECTED">Rejected</option>
+                        <option value="HIRED">Hired</option>
+                      </select>
+                    </td>
+                    <td className="py-3.5 px-4 text-right">
+                      <button
+                        onClick={() => setSelectedAppDetail(app)}
+                        className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 rounded-lg text-xs font-bold inline-flex items-center gap-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" />
+                        <span>View Resume</span>
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60 text-xs">
-                  {jobAppsList.map((app) => (
-                    <tr key={app.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="py-3 px-4 font-bold text-white">{app.fullName}</td>
-                      <td className="py-3 px-4 text-slate-300 font-semibold">{app.jobTitle}</td>
-                      <td className="py-3 px-4">
-                        <div className="text-slate-300">{app.email}</div>
-                        <div className="text-[10px] text-slate-500">{app.phone}</div>
-                      </td>
-                      <td className="py-3 px-4 text-slate-400">{app.appliedDate}</td>
-                      <td className="py-3 px-4">
-                        <select
-                          value={app.status || 'pending'}
-                          onChange={(e) =>
-                            handleUpdateAppStatus(app.id, e.target.value as JobApplication['status'])
-                          }
-                          className="bg-slate-950 border border-slate-800 text-[11px] font-bold rounded-lg px-2 py-1 text-slate-200 focus:outline-none focus:border-amber-500"
-                        >
-                          <option value="pending">Pending Review</option>
-                          <option value="reviewing">Under Review</option>
-                          <option value="shortlisted">Shortlisted</option>
-                          <option value="rejected">Rejected</option>
-                        </select>
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <button
-                          onClick={() => setSelectedAppDetail(app)}
-                          className="px-2.5 py-1 bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 rounded-lg text-xs font-semibold inline-flex items-center gap-1"
-                        >
-                          <Eye className="w-3.5 h-3.5" />
-                          <span>View Details</span>
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                ))}
 
-                  {jobAppsList.length === 0 && (
-                    <tr>
-                      <td colSpan={6} className="py-8 text-center text-slate-500">
-                        No candidate job applications submitted yet.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                {jobAppsList.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="py-12 text-center text-slate-500">
+                      No candidate applications submitted yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
 
-      {/* Job Role Create/Edit Modal */}
+      {/* Edit Job Modal */}
       {jobModalOpen && editingJob && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 my-8 text-slate-200 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Briefcase className="w-5 h-5 text-amber-400" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full p-6 my-8 text-slate-800 shadow-2xl">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+              <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                <Briefcase className="w-5 h-5 text-amber-600" />
                 <span>
                   {jobRolesList.some((j) => j.id === editingJob.id) ? 'Edit Job Opening' : 'Create Job Opening'}
                 </span>
@@ -338,109 +357,104 @@ export const CareersAndApplicantsManager: React.FC<CareersAndApplicantsManagerPr
                   setJobModalOpen(false);
                   setEditingJob(null);
                 }}
-                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveJobRole} className="mt-4 space-y-4">
+            <form onSubmit={handleSaveJobRole} className="mt-4 space-y-4 max-h-[75vh] overflow-y-auto pr-1">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Job Title</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Job Title *</label>
                   <input
                     type="text"
                     required
                     value={editingJob.title}
                     onChange={(e) => setEditingJob({ ...editingJob, title: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Department</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Department *</label>
                   <input
                     type="text"
                     required
                     value={editingJob.department}
                     onChange={(e) => setEditingJob({ ...editingJob, department: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Location</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Location</label>
                   <input
                     type="text"
-                    required
                     value={editingJob.location}
                     onChange={(e) => setEditingJob({ ...editingJob, location: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Experience Required</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Work Type</label>
                   <input
                     type="text"
-                    required
-                    value={editingJob.experience}
-                    onChange={(e) => setEditingJob({ ...editingJob, experience: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                    value={editingJob.workType}
+                    onChange={(e) => setEditingJob({ ...editingJob, workType: e.target.value })}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-amber-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[11px] font-bold text-slate-400 mb-1">Salary Range</label>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Salary Range</label>
                   <input
                     type="text"
-                    value={editingJob.salaryRange || ''}
+                    value={editingJob.salaryRange}
                     onChange={(e) => setEditingJob({ ...editingJob, salaryRange: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-amber-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] font-bold text-slate-400 mb-1">Job Description</label>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Description</label>
                 <textarea
                   rows={3}
-                  required
                   value={editingJob.description}
                   onChange={(e) => setEditingJob({ ...editingJob, description: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-amber-500"
                 />
               </div>
 
-              <div className="flex items-center gap-2">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Key Skills (comma separated)</label>
                 <input
-                  type="checkbox"
-                  id="jobActive"
-                  checked={editingJob.isActive}
-                  onChange={(e) => setEditingJob({ ...editingJob, isActive: e.target.checked })}
-                  className="rounded bg-slate-950 border-slate-800 text-amber-500"
+                  type="text"
+                  value={skillsText}
+                  onChange={(e) => setSkillsText(e.target.value)}
+                  placeholder="C/C++, ESP32, FreeRTOS, Modbus"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-amber-500 font-mono"
                 />
-                <label htmlFor="jobActive" className="text-xs font-bold text-slate-300">
-                  Accept Active Candidate Applications
-                </label>
               </div>
 
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                 <button
                   type="button"
                   onClick={() => {
                     setJobModalOpen(false);
                     setEditingJob(null);
                   }}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:bg-slate-800"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-lg shadow-amber-600/20 flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-sm shadow-amber-600/20 flex items-center gap-1.5"
                 >
                   <Save className="w-4 h-4" />
                   <span>Save Job Role</span>
@@ -451,73 +465,50 @@ export const CareersAndApplicantsManager: React.FC<CareersAndApplicantsManagerPr
         </div>
       )}
 
-      {/* Candidate Application Detail Modal */}
+      {/* Candidate Resume View Modal */}
       {selectedAppDetail && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-xs">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 text-slate-200 shadow-2xl">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div>
-                <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider">Candidate Application</span>
-                <h2 className="text-base font-bold text-white">{selectedAppDetail.fullName}</h2>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-lg w-full p-6 text-slate-800 shadow-2xl">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
+              <h3 className="text-base font-bold text-slate-900">Candidate Application Details</h3>
               <button
                 onClick={() => setSelectedAppDetail(null)}
-                className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="mt-4 space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-2 bg-slate-950 p-3 rounded-xl border border-slate-800">
-                <div>
-                  <span className="text-slate-500 text-[10px] block">Applied Position:</span>
-                  <span className="font-bold text-white">{selectedAppDetail.jobTitle}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 text-[10px] block">Experience:</span>
-                  <span className="font-bold text-white">{selectedAppDetail.experienceYears} Years</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 text-[10px] block">Email:</span>
-                  <span className="font-bold text-slate-200">{selectedAppDetail.email}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500 text-[10px] block">Phone:</span>
-                  <span className="font-bold text-slate-200">{selectedAppDetail.phone}</span>
+              <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                <p className="font-bold text-sm text-slate-900">{selectedAppDetail.fullName}</p>
+                <p className="text-slate-600 font-medium">Applied for: {selectedAppDetail.jobTitle}</p>
+                <div className="flex items-center gap-3 text-slate-500 mt-2">
+                  <span className="flex items-center gap-1"><Mail className="w-3.5 h-3.5" />{selectedAppDetail.email}</span>
+                  <span className="flex items-center gap-1"><Phone className="w-3.5 h-3.5" />{selectedAppDetail.phone}</span>
                 </div>
               </div>
 
               <div>
-                <span className="text-slate-400 text-[11px] font-bold block mb-1">Cover Note / Message:</span>
-                <p className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-slate-300 text-xs leading-relaxed">
-                  {selectedAppDetail.coverNote || 'No cover note attached.'}
+                <p className="font-bold text-slate-700">Cover Note / Cover Letter:</p>
+                <p className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-slate-600 text-xs mt-1 leading-relaxed whitespace-pre-wrap">
+                  {selectedAppDetail.coverLetter || 'No cover letter provided.'}
                 </p>
               </div>
 
               {selectedAppDetail.resumeUrl && (
-                <div>
-                  <span className="text-slate-400 text-[11px] font-bold block mb-1">Resume / Portfolio Link:</span>
+                <div className="pt-2">
                   <a
                     href={selectedAppDetail.resumeUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/20 text-blue-300 border border-blue-500/30 rounded-lg text-xs font-bold hover:bg-blue-600/30"
+                    className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm shadow-blue-600/20"
                   >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    <span>Open Resume File</span>
+                    <Download className="w-4 h-4" />
+                    <span>Download Candidate Resume / Portfolio</span>
                   </a>
                 </div>
               )}
-            </div>
-
-            <div className="mt-6 pt-3 border-t border-slate-800 flex justify-end">
-              <button
-                onClick={() => setSelectedAppDetail(null)}
-                className="px-4 py-1.5 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold"
-              >
-                Close
-              </button>
             </div>
           </div>
         </div>

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { 
-  Activity, RefreshCw, Clock, AlertTriangle, ShieldAlert
+  Activity, RefreshCw, Clock, AlertTriangle
 } from 'lucide-react';
 import { 
   AdminLog, getAdminLogs, resetAllDataToDefaultAsync 
@@ -53,13 +53,13 @@ export const AdminLogsManager: React.FC<AdminLogsManagerProps> = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-slate-900/60 p-4 rounded-2xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-lg font-bold text-white flex items-center gap-2">
-            <Activity className="w-5 h-5 text-purple-400" />
+          <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <Activity className="w-5 h-5 text-purple-600" />
             <span>Audit Logs & System Operations</span>
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-500 mt-0.5">
             Real-time audit trailing for catalog modifications, inventory updates, and factory reset actions
           </p>
         </div>
@@ -67,7 +67,7 @@ export const AdminLogsManager: React.FC<AdminLogsManagerProps> = ({
         <div className="flex items-center gap-2">
           <button
             onClick={refreshLogs}
-            className="px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 flex items-center gap-1.5"
+            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 flex items-center gap-1.5 transition-colors"
           >
             <RefreshCw className="w-3.5 h-3.5" />
             <span>Refresh Logs</span>
@@ -75,7 +75,7 @@ export const AdminLogsManager: React.FC<AdminLogsManagerProps> = ({
 
           <button
             onClick={handleResetDefaults}
-            className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600/80 hover:bg-red-600 text-white shadow-lg shadow-red-600/20 flex items-center gap-1.5"
+            className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-sm shadow-red-600/20 flex items-center gap-1.5"
           >
             <AlertTriangle className="w-4 h-4" />
             <span>Factory Reset Catalog</span>
@@ -84,44 +84,46 @@ export const AdminLogsManager: React.FC<AdminLogsManagerProps> = ({
       </div>
 
       {/* Logs Table */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl overflow-hidden">
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-300">System Activity History</span>
-          <span className="text-[10px] text-slate-500">{logs.length} Log Entries Recorded</span>
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+        <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+          <span className="text-xs font-bold text-slate-800">System Activity History</span>
+          <span className="text-[10px] text-slate-500 font-semibold">{logs.length} Log Entries Recorded</span>
         </div>
 
-        <div className="divide-y divide-slate-800/60 max-h-[500px] overflow-y-auto">
+        <div className="divide-y divide-slate-100 max-h-[500px] overflow-y-auto">
           {logs.map((log) => (
-            <div key={log.id} className="p-3.5 hover:bg-slate-800/30 transition-colors flex items-start justify-between gap-3">
+            <div key={log.id} className="p-3.5 hover:bg-slate-50/80 transition-colors flex items-start justify-between gap-3">
               <div className="space-y-0.5">
                 <div className="flex items-center gap-2">
                   <span
                     className={`px-2 py-0.5 rounded text-[9px] font-extrabold uppercase ${
                       log.action === 'ADD'
-                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                         : log.action === 'UPDATE'
-                        ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200'
                         : log.action === 'DELETE'
-                        ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                        : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                        ? 'bg-red-50 text-red-700 border border-red-200'
+                        : 'bg-purple-50 text-purple-700 border border-purple-200'
                     }`}
                   >
                     {log.action}
                   </span>
-                  <span className="text-xs font-bold text-white">{log.title}</span>
+                  <span className="text-xs font-bold text-slate-900">{log.title}</span>
                 </div>
-                <p className="text-[11px] text-slate-400">{log.details}</p>
+                {log.details && <p className="text-[11px] text-slate-500 leading-snug">{log.details}</p>}
               </div>
 
-              <div className="text-right shrink-0 text-[10px] text-slate-500 flex items-center gap-1">
+              <div className="flex items-center gap-1 text-[10px] text-slate-400 font-mono shrink-0">
                 <Clock className="w-3 h-3" />
-                <span>{new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                <span>{new Date(log.timestamp).toLocaleTimeString()}</span>
               </div>
             </div>
           ))}
 
           {logs.length === 0 && (
-            <div className="py-12 text-center text-slate-500">No activity logs logged yet.</div>
+            <div className="py-12 text-center text-slate-500 text-xs">
+              No audit logs recorded yet.
+            </div>
           )}
         </div>
       </div>

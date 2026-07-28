@@ -32,7 +32,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   setMobileOpen,
 }) => {
   const navItems: { id: AdminTab; label: string; icon: React.FC<{ className?: string }>; badge?: number }[] = [
-    { id: 'products', label: 'Hardware Catalog', icon: Box, badge: productsCount },
+    { id: 'products', label: 'Products', icon: Box, badge: productsCount },
     { id: 'store', label: 'Store Inventory', icon: Cpu, badge: storeCount },
     { id: 'categories', label: 'Categories Manager', icon: Layers },
     { id: 'careers', label: 'Careers & Applicants', icon: Briefcase, badge: jobAppsCount },
@@ -47,15 +47,15 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   };
 
   const sidebarContent = (
-    <div className="flex flex-col h-full bg-slate-900 border-r border-slate-800 text-slate-300">
-      <div className="p-5 border-b border-slate-800 flex items-center justify-between">
+    <div className="flex flex-col h-full bg-white border-r border-slate-200 text-slate-700">
+      <div className="p-5 border-b border-slate-200 flex items-center justify-between">
         <div>
-          <span className="text-xs font-bold tracking-wider text-blue-400 uppercase">Management Portal</span>
-          <h2 className="text-base font-extrabold text-white tracking-tight">OhmVeda Admin</h2>
+          <span className="text-xs font-bold tracking-wider text-blue-600 uppercase">Management Portal</span>
+          <h2 className="text-base font-extrabold text-slate-900 tracking-tight">OhmVeda Admin</h2>
         </div>
         <button
           onClick={() => setMobileOpen(false)}
-          className="md:hidden p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800"
+          className="md:hidden p-2 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100"
         >
           <X className="w-5 h-5" />
         </button>
@@ -71,18 +71,18 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
               onClick={() => handleSelect(item.id)}
               className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-xs font-bold transition-all ${
                 isActive
-                  ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                  : 'text-slate-400 hover:text-slate-100 hover:bg-slate-800/80'
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-500'}`} />
                 <span>{item.label}</span>
               </div>
               {typeof item.badge === 'number' && item.badge > 0 && (
                 <span
                   className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-                    isActive ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-300'
+                    isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700'
                   }`}
                 >
                   {item.badge}
@@ -93,9 +93,9 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
         })}
       </nav>
 
-      <div className="p-4 border-t border-slate-800/80 text-[11px] text-slate-500">
-        <p className="font-medium text-slate-400">OhmVeda Industrial IoT</p>
-        <p className="text-[10px] text-slate-600 mt-0.5">Modularized Console v2.0</p>
+      <div className="p-4 border-t border-slate-200 text-[11px] text-slate-500">
+        <p className="font-semibold text-slate-700">OhmVeda Industrial IoT</p>
+        <p className="text-[10px] text-slate-500 mt-0.5">Management Portal v2.0</p>
       </div>
     </div>
   );

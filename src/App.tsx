@@ -350,6 +350,8 @@ export default function App() {
           onOpenCart={() => setCartOpen(true)}
           onOpenAuth={() => setAuthModalOpen(true)}
           onLogout={handleLogout}
+          products={products}
+          productCategories={productCategories}
         />
       )}
 
