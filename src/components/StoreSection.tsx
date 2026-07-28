@@ -85,18 +85,29 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
   ];
 
   const getCategoryCount = (catId: string) => {
+    const matchedCatObj = activeCategories.find((c) => c.id === catId || c.label.toLowerCase() === catId.toLowerCase());
+    const catLabelLower = matchedCatObj ? matchedCatObj.label.toLowerCase() : '';
+    const catIdLower = catId.trim().toLowerCase();
+
     return activeProductsList.filter((p) => {
       if (!p) return false;
       if (catId === 'all') return true;
-      return (p.category || '').trim().toLowerCase() === catId.trim().toLowerCase();
+      const productCatLower = (p.category || '').trim().toLowerCase();
+      return productCatLower === catIdLower || (catLabelLower !== '' && productCatLower === catLabelLower);
     }).length;
   };
 
   const filteredProducts = activeProductsList.filter((product) => {
     if (!product) return false;
+    const matchedCatObj = activeCategories.find((c) => c.id === selectedCategory || c.label.toLowerCase() === selectedCategory.toLowerCase());
+    const catLabelLower = matchedCatObj ? matchedCatObj.label.toLowerCase() : '';
+    const catIdLower = selectedCategory.trim().toLowerCase();
+    const productCatLower = (product.category || '').trim().toLowerCase();
+
     const matchesCategory =
       selectedCategory === 'all' ||
-      (product.category || '').trim().toLowerCase() === selectedCategory.trim().toLowerCase();
+      productCatLower === catIdLower ||
+      (catLabelLower !== '' && productCatLower === catLabelLower);
     const q = searchQuery.toLowerCase();
     const matchesSearch =
       !searchQuery ||

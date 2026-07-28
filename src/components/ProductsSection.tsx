@@ -63,7 +63,14 @@ export const ProductsSection: React.FC<ProductsSectionProps> = ({
 
   const filteredProducts = selectedCategoryFilter === 'all'
     ? rawList
-    : rawList.filter(p => p.categoryGroup === selectedCategoryFilter);
+    : rawList.filter(p => {
+        if (!p) return false;
+        const group = (p.categoryGroup || '').trim().toLowerCase();
+        const sel = selectedCategoryFilter.trim().toLowerCase();
+        const matchedCat = categoryTabs.find(c => c.id === sel || c.label.toLowerCase() === sel);
+        const labelLower = matchedCat ? matchedCat.label.toLowerCase() : '';
+        return group === sel || (labelLower !== '' && group === labelLower);
+      });
 
   return (
     <section id="products" className="py-12 sm:py-16 bg-white text-slate-900 border-b border-slate-200 min-h-screen">

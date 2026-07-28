@@ -28,21 +28,25 @@ export const DEFAULT_AUTHORIZED_ADMIN_EMAILS: string[] = [
   'admin@ohmveda.com',
 ];
 
-export const DEFAULT_PRODUCT_CATEGORIES: ProductCategory[] = [
-  { id: 'gateways', label: 'IoT Edge Gateways', description: 'Cellular, Wi-Fi, Ethernet edge protocol translators' },
-  { id: 'sensing', label: 'Wireless Sensing Nodes', description: 'Battery and solar powered industrial environmental sensing' },
-  { id: 'telematics', label: 'Automotive & Fleet Telematics', description: 'CAN-bus, J1939, GPS/GNSS tracking hardware' },
-  { id: 'automation', label: 'Embedded Automation PLCs', description: 'Programmable logic controllers with optically isolated I/O' },
-];
+export const DEFAULT_PRODUCT_CATEGORIES: ProductCategory[] = [];
 
-export const DEFAULT_STORE_CATEGORIES: StoreCategory[] = [
-  { id: 'microcontrollers', label: 'Microcontrollers & Dev Boards', icon: 'Cpu', description: 'MCU development systems, ESP32, STM32, PIC' },
-  { id: 'sensors', label: 'Sensors & Instrumentation', icon: 'Zap', description: 'Temperature, vibration, gas, pressure, optical sensors' },
-  { id: 'wireless', label: 'Wireless, LoRa & Radios', icon: 'Wifi', description: 'LoRaWAN modules, BLE 5.0, 4G LTE cellular modems' },
-  { id: 'power_motor', label: 'Power & Motor Drivers', icon: 'Zap', description: 'DC-DC step down converters, MOSFETs, motor bridges' },
-  { id: 'displays', label: 'Displays & UI Modules', icon: 'Smartphone', description: 'OLED screens, TFT LCD displays, e-Paper modules' },
-  { id: 'prototyping', label: 'Prototyping & Accessories', icon: 'Layers', description: 'Breadboards, jumpers, custom PCBs, enclosures' },
-];
+export const DEFAULT_STORE_CATEGORIES: StoreCategory[] = [];
+
+// Helper to remove undefined properties before sending to Firestore
+export function sanitizeForFirestore<T extends Record<string, any>>(obj: T): Record<string, any> {
+  const clean: Record<string, any> = {};
+  Object.keys(obj).forEach((key) => {
+    const val = obj[key];
+    if (val !== undefined) {
+      if (val !== null && typeof val === 'object' && !Array.isArray(val) && !(val instanceof Date)) {
+        clean[key] = sanitizeForFirestore(val);
+      } else {
+        clean[key] = val;
+      }
+    }
+  });
+  return clean;
+}
 
 export interface AdminLog {
   id: string;
@@ -67,19 +71,22 @@ export function getStoredProductCategories(): ProductCategory[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.PRODUCT_CATEGORIES);
     if (raw !== null) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
     }
   } catch (err) {
     console.error('Error reading product categories:', err);
   }
-  return DEFAULT_PRODUCT_CATEGORIES;
+  return [];
 }
 
 export function saveStoredProductCategories(categories: ProductCategory[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.PRODUCT_CATEGORIES, JSON.stringify(categories));
     categories.forEach((cat) => {
-      setDoc(doc(db, 'product_categories', cat.id), cat, { merge: true }).catch((err) =>
+      setDoc(doc(db, 'product_categories', cat.id), sanitizeForFirestore(cat), { merge: true }).catch((err) =>
         console.error('Firestore save product category error:', err)
       );
     });
@@ -93,19 +100,22 @@ export function getStoredStoreCategories(): StoreCategory[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.STORE_CATEGORIES);
     if (raw !== null) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        return parsed;
+      }
     }
   } catch (err) {
     console.error('Error reading store categories:', err);
   }
-  return DEFAULT_STORE_CATEGORIES;
+  return [];
 }
 
 export function saveStoredStoreCategories(categories: StoreCategory[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.STORE_CATEGORIES, JSON.stringify(categories));
     categories.forEach((cat) => {
-      setDoc(doc(db, 'store_categories', cat.id), cat, { merge: true }).catch((err) =>
+      setDoc(doc(db, 'store_categories', cat.id), sanitizeForFirestore(cat), { merge: true }).catch((err) =>
         console.error('Firestore save store category error:', err)
       );
     });
@@ -164,7 +174,7 @@ export function saveStoredTurnkeyProducts(products: TurnkeyProduct[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.TURNKEY_PRODUCTS, JSON.stringify(products));
     products.forEach((p) => {
-      setDoc(doc(db, 'turnkey_products', p.id), p, { merge: true }).catch((err) =>
+      setDoc(doc(db, 'turnkey_products', p.id), sanitizeForFirestore(p), { merge: true }).catch((err) =>
         console.error('Firestore save turnkey product error:', err)
       );
     });
@@ -194,7 +204,7 @@ export function saveStoredStoreItems(items: StoreItem[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify(items));
     items.forEach((item) => {
-      setDoc(doc(db, 'store_items', item.id), item, { merge: true }).catch((err) =>
+      setDoc(doc(db, 'store_items', item.id), sanitizeForFirestore(item), { merge: true }).catch((err) =>
         console.error('Firestore save store item error:', err)
       );
     });
@@ -656,7 +666,7 @@ export function subscribeToFirestoreData(onUpdate: (data: {
             shortDesc: data.shortDesc || '',
             specs: Array.isArray(data.specs) ? data.specs : [],
             sku: data.sku || 'OV-CMP-ITEM',
-            category: data.category || 'microcontrollers',
+            category: data.category || '',
             badge: data.badge,
           };
         });
@@ -697,15 +707,8 @@ export function subscribeToFirestoreData(onUpdate: (data: {
         localStorage.setItem(STORAGE_KEYS.PRODUCT_CATEGORIES, JSON.stringify(categories));
         onUpdate({ productCategories: categories });
       } else {
-        const local = getStoredProductCategories();
-        const catsToSeed = local.length > 0 ? local : DEFAULT_PRODUCT_CATEGORIES;
-        catsToSeed.forEach((cat) => {
-          setDoc(doc(db, 'product_categories', cat.id), cat, { merge: true }).catch((err) =>
-            console.error('Firestore seed product category error:', err)
-          );
-        });
-        localStorage.setItem(STORAGE_KEYS.PRODUCT_CATEGORIES, JSON.stringify(catsToSeed));
-        onUpdate({ productCategories: catsToSeed });
+        localStorage.setItem(STORAGE_KEYS.PRODUCT_CATEGORIES, JSON.stringify([]));
+        onUpdate({ productCategories: [] });
       }
     });
     unsubs.push(unsub);
@@ -721,15 +724,8 @@ export function subscribeToFirestoreData(onUpdate: (data: {
         localStorage.setItem(STORAGE_KEYS.STORE_CATEGORIES, JSON.stringify(categories));
         onUpdate({ storeCategories: categories });
       } else {
-        const local = getStoredStoreCategories();
-        const catsToSeed = local.length > 0 ? local : DEFAULT_STORE_CATEGORIES;
-        catsToSeed.forEach((cat) => {
-          setDoc(doc(db, 'store_categories', cat.id), cat, { merge: true }).catch((err) =>
-            console.error('Firestore seed store category error:', err)
-          );
-        });
-        localStorage.setItem(STORAGE_KEYS.STORE_CATEGORIES, JSON.stringify(catsToSeed));
-        onUpdate({ storeCategories: catsToSeed });
+        localStorage.setItem(STORAGE_KEYS.STORE_CATEGORIES, JSON.stringify([]));
+        onUpdate({ storeCategories: [] });
       }
     });
     unsubs.push(unsub);
