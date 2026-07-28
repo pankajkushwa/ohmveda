@@ -30,6 +30,8 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
   const [storeItemModalOpen, setStoreItemModalOpen] = useState(false);
   const [editingStoreItem, setEditingStoreItem] = useState<StoreItem | null>(null);
   const [specsInputText, setSpecsInputText] = useState('');
+  const [basePriceInput, setBasePriceInput] = useState<number | ''>(0);
+  const [discountPercentInput, setDiscountPercentInput] = useState<number | ''>('');
 
   // Filtered Store Components
   const filteredItems = storeItems.filter((s) => {
@@ -61,6 +63,8 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
     };
     setEditingStoreItem(newItem);
     setSpecsInputText('');
+    setBasePriceInput('');
+    setDiscountPercentInput('');
     setStoreItemModalOpen(true);
   };
 
@@ -68,6 +72,16 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
     const itemCopy: StoreItem = JSON.parse(JSON.stringify(item));
     setEditingStoreItem(itemCopy);
     setSpecsInputText(itemCopy.specs ? itemCopy.specs.join('\n') : '');
+
+    const orig = itemCopy.originalPrice && itemCopy.originalPrice > itemCopy.price ? itemCopy.originalPrice : itemCopy.price;
+    const disc = itemCopy.discountPercent !== undefined
+      ? itemCopy.discountPercent
+      : (itemCopy.originalPrice && itemCopy.originalPrice > itemCopy.price
+          ? Math.round(((itemCopy.originalPrice - itemCopy.price) / itemCopy.originalPrice) * 100)
+          : 0);
+
+    setBasePriceInput(orig || itemCopy.price || '');
+    setDiscountPercentInput(disc > 0 ? disc : '');
     setStoreItemModalOpen(true);
   };
 
@@ -85,6 +99,14 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
       return;
     }
 
+    // Calculate Price & Discount
+    const baseVal = typeof basePriceInput === 'number' ? basePriceInput : 0;
+    const discVal = typeof discountPercentInput === 'number' ? discountPercentInput : 0;
+
+    const finalSellingPrice = discVal > 0 && discVal < 100
+      ? Math.round(baseVal * (1 - discVal / 100))
+      : baseVal;
+
     // Parse specs from multiline text
     const parsedSpecs = specsInputText
       .split('\n')
@@ -93,6 +115,9 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
 
     const finalItem: StoreItem = {
       ...editingStoreItem,
+      price: finalSellingPrice,
+      originalPrice: discVal > 0 ? baseVal : baseVal,
+      discountPercent: discVal > 0 ? discVal : undefined,
       specs: parsedSpecs,
     };
 
@@ -344,9 +369,11 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
 
       {/* Edit/Add Store Item Modal */}
       {storeItemModalOpen && editingStoreItem && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
-          <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full p-6 my-8 text-slate-800 shadow-2xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-900/60 backdrop-blur-xs">
+          <div className="bg-white border border-slate-200 rounded-2xl max-w-2xl w-full text-slate-800 shadow-2xl flex flex-col max-h-[88vh] my-auto overflow-hidden">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 bg-slate-50/80 shrink-0">
               <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
                 <Cpu className="w-5 h-5 text-emerald-600" />
                 <span>
@@ -354,169 +381,211 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                 </span>
               </h2>
               <button
+                type="button"
                 onClick={() => {
                   setStoreItemModalOpen(false);
                   setEditingStoreItem(null);
                 }}
-                className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100"
+                className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSaveStoreItem} className="mt-4 space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Modal Body & Form */}
+            <form onSubmit={handleSaveStoreItem} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+                
+                {/* Name & Category Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Component Name *</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 10k Ohm Metal Film Resistor 1/4W"
+                      value={editingStoreItem.name}
+                      onChange={(e) => setEditingStoreItem({ ...editingStoreItem, name: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-medium"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Category *</label>
+                    <select
+                      value={editingStoreItem.category}
+                      onChange={(e) => setEditingStoreItem({ ...editingStoreItem, category: e.target.value })}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-medium"
+                    >
+                      {storeCategories.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.label} ({c.id})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Price, Discount (%) & Stock Row */}
+                <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Price (₹) *</label>
+                      <input
+                        type="number"
+                        required
+                        min={0}
+                        placeholder="e.g. 100"
+                        value={basePriceInput}
+                        onChange={(e) => setBasePriceInput(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-mono font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Discount (%)</label>
+                      <input
+                        type="number"
+                        min={0}
+                        max={99}
+                        placeholder="e.g. 10 (or blank)"
+                        value={discountPercentInput}
+                        onChange={(e) => setDiscountPercentInput(e.target.value === '' ? '' : Math.min(99, Math.max(0, Number(e.target.value))))}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-mono font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">Stock Quantity *</label>
+                      <input
+                        type="number"
+                        min={0}
+                        value={editingStoreItem.stock}
+                        onChange={(e) =>
+                          setEditingStoreItem({
+                            ...editingStoreItem,
+                            stock: Number(e.target.value),
+                            inStock: Number(e.target.value) > 0,
+                          })
+                        }
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-mono font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Calculated Price Helper */}
+                  {(() => {
+                    const b = typeof basePriceInput === 'number' ? basePriceInput : 0;
+                    const d = typeof discountPercentInput === 'number' ? discountPercentInput : 0;
+                    const calc = d > 0 && d < 100 ? Math.round(b * (1 - d / 100)) : b;
+
+                    return (
+                      <div className="pt-2 border-t border-slate-200 flex flex-wrap items-center justify-between text-xs text-slate-600 gap-2">
+                        <span className="font-semibold text-slate-700">Calculated Store Price:</span>
+                        {d > 0 ? (
+                          <div className="flex items-baseline gap-2 font-mono">
+                            <span className="text-sm font-bold text-emerald-600">₹{calc.toLocaleString()}</span>
+                            <span className="text-xs text-slate-400 line-through">₹{b.toLocaleString()}</span>
+                            <span className="px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 text-[10px] font-bold">{d}% OFF</span>
+                          </div>
+                        ) : (
+                          <span className="font-mono font-bold text-slate-900">
+                            ₹{b.toLocaleString()} <span className="text-[10px] text-slate-400 font-normal">(No discount applied)</span>
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
+                </div>
+
+                {/* SKU & Badge Tag Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">SKU Code</label>
+                    <input
+                      type="text"
+                      value={editingStoreItem.sku || ''}
+                      onChange={(e) => setEditingStoreItem({ ...editingStoreItem, sku: e.target.value })}
+                      placeholder="e.g. OV-RES-10K"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Badge Tag</label>
+                    <input
+                      type="text"
+                      value={editingStoreItem.badge || ''}
+                      onChange={(e) => setEditingStoreItem({ ...editingStoreItem, badge: e.target.value })}
+                      placeholder="e.g. High Precision, In Stock, Bestseller"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                {/* Description */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Component Name *</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 10k Ohm Metal Film Resistor 1/4W"
-                    value={editingStoreItem.name}
-                    onChange={(e) => setEditingStoreItem({ ...editingStoreItem, name: e.target.value })}
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Short Summary / Description</label>
+                  <textarea
+                    rows={2}
+                    value={editingStoreItem.shortDesc || ''}
+                    onChange={(e) => setEditingStoreItem({ ...editingStoreItem, shortDesc: e.target.value })}
+                    placeholder="Brief description of the component..."
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
 
+                {/* Specifications */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Category *</label>
-                  <select
-                    value={editingStoreItem.category}
-                    onChange={(e) => setEditingStoreItem({ ...editingStoreItem, category: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
-                  >
-                    {storeCategories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.label} ({c.id})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Selling Price (₹) *</label>
-                  <input
-                    type="number"
-                    required
-                    min={0}
-                    value={editingStoreItem.price}
-                    onChange={(e) => setEditingStoreItem({ ...editingStoreItem, price: Number(e.target.value) })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Original Price (₹)</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={editingStoreItem.originalPrice || ''}
-                    onChange={(e) => setEditingStoreItem({ ...editingStoreItem, originalPrice: Number(e.target.value) })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Stock Quantity *</label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={editingStoreItem.stock}
-                    onChange={(e) =>
-                      setEditingStoreItem({
-                        ...editingStoreItem,
-                        stock: Number(e.target.value),
-                        inStock: Number(e.target.value) > 0,
-                      })
-                    }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">SKU Code</label>
-                  <input
-                    type="text"
-                    value={editingStoreItem.sku || ''}
-                    onChange={(e) => setEditingStoreItem({ ...editingStoreItem, sku: e.target.value })}
-                    placeholder="e.g. OV-RES-10K"
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Technical Specifications & Key Features (Enter 1 per line)
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={specsInputText}
+                    onChange={(e) => setSpecsInputText(e.target.value)}
+                    placeholder="Resistance: 10k Ohm ±1%&#10;Power Rating: 0.25W (1/4 Watt)&#10;Package: Through Hole THT&#10;Max Operating Voltage: 250V"
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-mono"
                   />
+                  <p className="text-[10px] text-slate-400 mt-0.5">
+                    Write each specification or feature on a separate line.
+                  </p>
                 </div>
 
+                {/* Image Upload Manager */}
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Badge Tag</label>
-                  <input
-                    type="text"
-                    value={editingStoreItem.badge || ''}
-                    onChange={(e) => setEditingStoreItem({ ...editingStoreItem, badge: e.target.value })}
-                    placeholder="e.g. High Precision, In Stock, Bestseller"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+                  <ImageUploaderManager
+                    images={editingStoreItem.images || (editingStoreItem.image ? [editingStoreItem.image] : [])}
+                    image={editingStoreItem.image}
+                    onChange={(urls, primary) =>
+                      setEditingStoreItem({
+                        ...editingStoreItem,
+                        images: urls,
+                        image: primary || editingStoreItem.image || '',
+                      })
+                    }
+                    accentColor="emerald"
+                    label="Component Media & Images"
                   />
                 </div>
+
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">Short Summary / Description</label>
-                <textarea
-                  rows={2}
-                  value={editingStoreItem.shortDesc || ''}
-                  onChange={(e) => setEditingStoreItem({ ...editingStoreItem, shortDesc: e.target.value })}
-                  placeholder="Brief description of the component..."
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Technical Specifications & Key Features (Enter 1 per line)
-                </label>
-                <textarea
-                  rows={4}
-                  value={specsInputText}
-                  onChange={(e) => setSpecsInputText(e.target.value)}
-                  placeholder="Resistance: 10k Ohm ±1%&#10;Power Rating: 0.25W (1/4 Watt)&#10;Package: Through Hole THT&#10;Max Operating Voltage: 250V"
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-mono"
-                />
-                <p className="text-[10px] text-slate-400 mt-0.5">
-                  Write each specification or feature on a separate line.
-                </p>
-              </div>
-
-              <div>
-                <ImageUploaderManager
-                  images={editingStoreItem.images || (editingStoreItem.image ? [editingStoreItem.image] : [])}
-                  image={editingStoreItem.image}
-                  onChange={(urls, primary) =>
-                    setEditingStoreItem({
-                      ...editingStoreItem,
-                      images: urls,
-                      image: primary || editingStoreItem.image || '',
-                    })
-                  }
-                  accentColor="emerald"
-                  label="Component Media & Images"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
+              {/* Modal Footer */}
+              <div className="flex items-center justify-end gap-3 p-4 border-t border-slate-200 bg-slate-50 shrink-0">
                 <button
                   type="button"
                   onClick={() => {
                     setStoreItemModalOpen(false);
                     setEditingStoreItem(null);
                   }}
-                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm shadow-emerald-600/20 flex items-center gap-1.5"
+                  className="px-5 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm shadow-emerald-600/20 flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
                   <span>Save Component</span>

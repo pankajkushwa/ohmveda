@@ -17,6 +17,7 @@ export interface StoreItem {
   category: string;
   price: number; // in INR / USD currency standard
   originalPrice?: number;
+  discountPercent?: number;
   stock: number;
   inStock: boolean;
   rating: number;
