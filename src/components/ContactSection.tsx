@@ -1,13 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Phone, MapPin, Clock, MessageSquare, Send, CheckCircle2, Building, ShieldCheck, ArrowRight } from 'lucide-react';
-import { COMPANY_INFO } from '../data/companyData';
+import { Mail, Phone, MapPin, MessageSquare, Send, CheckCircle2, Building, ShieldCheck, ArrowRight } from 'lucide-react';
+import { getStoredCompanyContact } from '../services/dataStorage';
+import { CompanyContactInfo } from '../types';
 
 interface ContactSectionProps {
   onOpenInquiry: () => void;
 }
 
 export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenInquiry }) => {
+  const [contactInfo, setContactInfo] = useState<CompanyContactInfo>(getStoredCompanyContact());
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setContactInfo(getStoredCompanyContact());
+    };
+    window.addEventListener('ohmveda_contact_info_updated', handleUpdate);
+    return () => window.removeEventListener('ohmveda_contact_info_updated', handleUpdate);
+  }, []);
+
   const [formState, setFormState] = useState({
     name: '',
     email: '',
@@ -66,8 +77,8 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenInquiry })
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">Email Address</span>
                 <h4 className="text-base font-bold text-white mt-0.5">
-                  <a href={`mailto:${COMPANY_INFO.contactEmail}`} className="hover:text-blue-400 transition-colors">
-                    {COMPANY_INFO.contactEmail}
+                  <a href={`mailto:${contactInfo.email}`} className="hover:text-blue-400 transition-colors">
+                    {contactInfo.email}
                   </a>
                 </h4>
                 <p className="text-xs text-slate-400 mt-1">For project proposals, RFQs, technical support, and component inquiries.</p>
@@ -82,9 +93,9 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenInquiry })
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">Direct Phone & WhatsApp</span>
                 <h4 className="text-base font-bold text-white mt-0.5 font-mono">
-                  +91 98765 43210 / +91 (80) 4123-8900
+                  {contactInfo.phone}
+                  {contactInfo.phoneSecondary ? ` / ${contactInfo.phoneSecondary}` : ''}
                 </h4>
-                <p className="text-xs text-slate-400 mt-1">Mon - Sat: 9:00 AM - 7:00 PM IST (Indian Standard Time)</p>
               </div>
             </div>
 
@@ -94,18 +105,19 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenInquiry })
                 <MapPin className="w-5 h-5" />
               </div>
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">Engineering Office & R&D Lab</span>
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono">{contactInfo.addressTitle || 'Engineering Office & R&D Lab'}</span>
                 <h4 className="text-sm font-bold text-white mt-1 leading-snug">
-                  OhmVeda Technologies Private Limited
+                  {contactInfo.companyName}
                 </h4>
                 <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                  Tech Innovation Hub, Block B, Electronic City Phase 1,<br />
-                  Bengaluru, Karnataka 560100, India
+                  {contactInfo.addressLine1}
+                  {contactInfo.addressLine2 && <><br />{contactInfo.addressLine2}</>}
                 </p>
               </div>
             </div>
 
           </motion.div>
+
 
           {/* Right: Quick Direct Contact Form */}
           <motion.div 

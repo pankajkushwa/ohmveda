@@ -1,12 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { Search, ShoppingBag, Cpu, Wifi, Zap, Monitor, Wrench, Check, Plus, ShieldCheck, Tag, Star, ArrowLeft, ChevronRight, Package, Truck, PhoneCall, Layers, Smartphone, Activity, Filter, SlidersHorizontal, RotateCcw, X } from 'lucide-react';
+import { 
+  Search, ShoppingBag, Cpu, Wifi, Zap, Monitor, Wrench, Check, Plus, ShieldCheck, Tag, Star, 
+  ArrowLeft, ChevronRight, Package, Truck, PhoneCall, Layers, Smartphone, Activity, Filter, 
+  SlidersHorizontal, RotateCcw, X, FileText, Download, FileCode, 
+  MessageSquare, Send, ThumbsUp, HelpCircle, CheckCircle2, User, Eye, FileSpreadsheet, Sparkles 
+} from 'lucide-react';
 import { STORE_PRODUCTS } from '../data/storeProducts';
-import { StoreCategory, StoreItem } from '../types';
+import { StoreCategory, StoreItem, StoreQaItem, StoreReviewItem, TechnicalDocument } from '../types';
 import { ImageCarousel } from './ImageCarousel';
-import { DEFAULT_STORE_CATEGORIES } from '../services/dataStorage';
+import { 
+  DEFAULT_STORE_CATEGORIES, 
+  getStoredStoreQas, 
+  addStoreQuestion, 
+  getStoredStoreReviews, 
+  addStoreReview 
+} from '../services/dataStorage';
 
 interface StoreSectionProps {
-  onAddToCart: (product: StoreItem) => void;
+  onAddToCart: (product: StoreItem, quantity?: number) => void;
   cartItemIds: string[];
   initialCategory?: string;
   initialComponentId?: string | null;
@@ -36,7 +47,39 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
   // Dedicated Product Detail Page State (Amazon/Flipkart style)
   const [selectedComponent, setSelectedComponent] = useState<StoreItem | null>(null);
   const [quantity, setQuantity] = useState<number>(1);
-  const [detailTab, setDetailTab] = useState<'overview' | 'specs' | 'applications'>('overview');
+  const [detailTab, setDetailTab] = useState<'documents' | 'specs' | 'applications' | 'qa' | 'reviews'>('documents');
+
+  // Q&A State
+  const [storeQas, setStoreQas] = useState<StoreQaItem[]>(() => getStoredStoreQas());
+  const [newQuestionText, setNewQuestionText] = useState('');
+  const [newQuestionName, setNewQuestionName] = useState('');
+  const [newQuestionEmail, setNewQuestionEmail] = useState('');
+  const [qaSubmittedToast, setQaSubmittedToast] = useState(false);
+
+  // Reviews State
+  const [storeReviews, setStoreReviews] = useState<StoreReviewItem[]>(() => getStoredStoreReviews());
+  const [newReviewRating, setNewReviewRating] = useState<number>(5);
+  const [newReviewName, setNewReviewName] = useState('');
+  const [newReviewEmail, setNewReviewEmail] = useState('');
+  const [newReviewTitle, setNewReviewTitle] = useState('');
+  const [newReviewComment, setNewReviewComment] = useState('');
+  const [reviewSubmittedToast, setReviewSubmittedToast] = useState(false);
+
+  // Document Modal Preview State
+  const [viewingDocModal, setViewingDocModal] = useState<TechnicalDocument | null>(null);
+
+  useEffect(() => {
+    const handleQaSync = () => setStoreQas(getStoredStoreQas());
+    const handleReviewSync = () => setStoreReviews(getStoredStoreReviews());
+
+    window.addEventListener('ohmveda_store_qas_updated', handleQaSync);
+    window.addEventListener('ohmveda_store_reviews_updated', handleReviewSync);
+
+    return () => {
+      window.removeEventListener('ohmveda_store_qas_updated', handleQaSync);
+      window.removeEventListener('ohmveda_store_reviews_updated', handleReviewSync);
+    };
+  }, []);
 
   const activeProductsList = customStoreProducts !== undefined ? customStoreProducts : STORE_PRODUCTS;
   const activeCategories = customCategories !== undefined ? customCategories : DEFAULT_STORE_CATEGORIES;
@@ -428,89 +471,622 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
           </div>
 
           {/* DEEP SPECIFICATIONS & TECHNICAL DETAILS TABS */}
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
-            <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
-              {[
-                { id: 'overview', label: 'Technical Overview' },
-                { id: 'specs', label: 'Parameter Specifications' },
-                { id: 'applications', label: 'Recommended Applications' },
-              ].map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => setDetailTab(tab.id as any)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    detailTab === tab.id
-                      ? 'bg-blue-600 text-white shadow-2xs'
-                      : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              ))}
-            </div>
+          {(() => {
+            const itemQas = storeQas.filter((q) => q.itemId === selectedComponent.id);
+            const itemReviews = storeReviews.filter((r) => r.itemId === selectedComponent.id);
+            const itemDocs: TechnicalDocument[] = (selectedComponent.documents && selectedComponent.documents.length > 0)
+              ? selectedComponent.documents
+              : [
+                  {
+                    id: `doc-gen-1-${selectedComponent.id}`,
+                    title: `${selectedComponent.name} Technical Datasheet & Specification Sheet`,
+                    fileType: 'Datasheet',
+                    url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80',
+                    fileSize: '1.4 MB',
+                    uploadedAt: '2026-03-01',
+                  },
+                  {
+                    id: `doc-gen-2-${selectedComponent.id}`,
+                    title: `${selectedComponent.sku} GPIO Pinout & Interfacing Schematic`,
+                    fileType: 'Schematic',
+                    url: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1200&q=80',
+                    fileSize: '820 KB',
+                    uploadedAt: '2026-03-05',
+                  },
+                  {
+                    id: `doc-gen-3-${selectedComponent.id}`,
+                    title: `OhmVeda Integration & C++/Arduino Code Sample Guide`,
+                    fileType: 'Manual',
+                    url: '#',
+                    fileSize: '2.1 MB',
+                    uploadedAt: '2026-03-10',
+                  },
+                ];
 
-            {/* TAB 1: OVERVIEW */}
-            {detailTab === 'overview' && (
-              <div className="space-y-4 text-xs text-slate-600 leading-relaxed">
-                <p>
-                  The <strong className="text-slate-900">{selectedComponent.name}</strong> ({selectedComponent.sku}) is an industrial-grade electronics component selected and tested specifically for embedded systems, IoT gateways, custom PCB prototypes, and OEM hardware manufacturing.
-                </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-                    <div className="font-bold text-slate-900 text-xs">Quality Inspection & Testing</div>
-                    <p className="text-slate-500">Every batch undergoes rigorous power-on pin voltage checks, signal integrity analysis, and ESD safe packaging.</p>
+            return (
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
+                
+                {/* Tab Navigation */}
+                <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 pb-3">
+                  {[
+                    { id: 'documents', label: 'Technical Documents', icon: FileText, count: itemDocs.length },
+                    { id: 'specs', label: 'Parameter Specifications', icon: SlidersHorizontal },
+                    { id: 'applications', label: 'Recommended Applications', icon: Cpu },
+                    { id: 'qa', label: 'Questions & Answers', icon: HelpCircle, count: itemQas.length },
+                    { id: 'reviews', label: 'Customer Reviews', icon: Star, count: itemReviews.length },
+                  ].map((tab) => {
+                    const TabIcon = tab.icon;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => setDetailTab(tab.id as any)}
+                        className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+                          detailTab === tab.id
+                            ? 'bg-blue-600 text-white shadow-xs'
+                            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                        }`}
+                      >
+                        <TabIcon className="w-4 h-4" />
+                        <span>{tab.label}</span>
+                        {tab.count !== undefined && (
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-extrabold ${
+                              detailTab === tab.id
+                                ? 'bg-white text-blue-700'
+                                : 'bg-slate-200 text-slate-700'
+                            }`}
+                          >
+                            {tab.count}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* TAB 1: TECHNICAL DOCUMENTS */}
+                {detailTab === 'documents' && (
+                  <div className="space-y-6">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50 p-4 rounded-2xl border border-slate-200">
+                      <div>
+                        <h4 className="text-xs font-bold text-slate-900 uppercase font-mono tracking-wider flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-blue-600" />
+                          <span>Component Datasheets & Engineering Documentation</span>
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Download official hardware specs, pinout schematics, and C++/Python driver sample code uploaded by OhmVeda R&D team.
+                        </p>
+                      </div>
+                      <span className="px-3 py-1 rounded-xl bg-blue-100 text-blue-800 font-mono text-[11px] font-bold self-start sm:self-center shrink-0">
+                        {itemDocs.length} Documents Available
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {itemDocs.map((docItem) => {
+                        const isPdf = docItem.fileType === 'Datasheet' || docItem.url.toLowerCase().includes('pdf');
+                        const DocIcon = isPdf ? FileText : docItem.fileType === 'Schematic' ? FileCode : FileSpreadsheet;
+
+                        return (
+                          <div
+                            key={docItem.id}
+                            className="p-4 rounded-2xl border border-slate-200 hover:border-blue-300 bg-white hover:bg-slate-50/80 transition-all flex flex-col justify-between gap-4 shadow-2xs group"
+                          >
+                            <div className="flex items-start gap-3">
+                              <div className="p-3 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                <DocIcon className="w-6 h-6" />
+                              </div>
+                              <div className="space-y-1 min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-mono font-bold uppercase border border-slate-200">
+                                    {docItem.fileType || 'PDF'}
+                                  </span>
+                                  {docItem.fileSize && (
+                                    <span className="text-[10px] text-slate-400 font-mono">
+                                      {docItem.fileSize}
+                                    </span>
+                                  )}
+                                </div>
+                                <h5 className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                                  {docItem.title}
+                                </h5>
+                                {docItem.uploadedAt && (
+                                  <p className="text-[10px] text-slate-400 font-mono">
+                                    Uploaded: {docItem.uploadedAt}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                              {docItem.url && docItem.url !== '#' ? (
+                                <a
+                                  href={docItem.url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="flex-1 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                  <span>Download / View Document</span>
+                                </a>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setViewingDocModal(docItem)}
+                                  className="flex-1 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-blue-400" />
+                                  <span>View Inline Documentation</span>
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 text-xs text-amber-900 flex items-start gap-3">
+                      <HelpCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <div className="font-bold">Need custom CAD 3D step models or PCB schematic footprints?</div>
+                        <p className="text-amber-800/90 text-[11px] mt-0.5">
+                          Admin managers can upload additional custom datasheets and pinout diagrams via the Admin Dashboard under Store Inventory.
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-                    <div className="font-bold text-slate-900 text-xs">Technical Support & Datasheet</div>
-                    <p className="text-slate-500">Complete pinouts, schematic symbol references, and Arduino/ESP-IDF sample code available on request.</p>
+                )}
+
+                {/* TAB 2: SPECS TABLE */}
+                {detailTab === 'specs' && (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs font-mono">
+                      <tbody className="divide-y divide-slate-200 border border-slate-200 rounded-xl overflow-hidden">
+                        <tr className="bg-slate-50">
+                          <td className="px-4 py-3 font-bold text-slate-700 w-1/3">Part SKU / Code</td>
+                          <td className="px-4 py-3 text-slate-900 font-bold">{selectedComponent.sku}</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-3 font-bold text-slate-700">Category</td>
+                          <td className="px-4 py-3 text-slate-900">{compCategory?.label || selectedComponent.category}</td>
+                        </tr>
+                        <tr className="bg-slate-50">
+                          <td className="px-4 py-3 font-bold text-slate-700">Unit Stock Count</td>
+                          <td className="px-4 py-3 text-emerald-700 font-bold">{selectedComponent.stock} units available</td>
+                        </tr>
+                        <tr>
+                          <td className="px-4 py-3 font-bold text-slate-700">Key Highlights</td>
+                          <td className="px-4 py-3 text-slate-900">{(selectedComponent.specs || []).join(', ')}</td>
+                        </tr>
+                        <tr className="bg-slate-50">
+                          <td className="px-4 py-3 font-bold text-slate-700">GST Invoice & Tax</td>
+                          <td className="px-4 py-3 text-slate-900">Included (18% GST invoice provided)</td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
+                )}
+
+                {/* TAB 3: APPLICATIONS */}
+                {detailTab === 'applications' && (
+                  <div className="space-y-3 text-xs text-slate-600">
+                    <h4 className="font-bold text-slate-900">Recommended Hardware Applications:</h4>
+                    <ul className="list-disc list-inside space-y-1.5 pl-2 font-medium">
+                      <li>Industrial IoT automation & remote telemetry monitoring</li>
+                      <li>Custom microcontroller PCB assembly and firmware prototyping</li>
+                      <li>Smart agriculture, environmental sensing, and energy metering</li>
+                      <li>Robotics, motor drive controllers, and embedded edge node computing</li>
+                    </ul>
+                  </div>
+                )}
+
+                {/* TAB 4: QUESTIONS & ANSWERS (Q&A) */}
+                {detailTab === 'qa' && (
+                  <div className="space-y-8">
+                    
+                    {/* Header & Submit Banner */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl bg-slate-50 border border-slate-200">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                          <HelpCircle className="w-5 h-5 text-blue-600" />
+                          <span>Component Questions & Answers ({itemQas.length})</span>
+                        </h4>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Have a question about voltage levels, pinouts, or firmware compatibility? Ask below and our hardware engineering team will answer.
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Ask Question Form */}
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!newQuestionText.trim()) return;
+                      addStoreQuestion(selectedComponent.id, newQuestionName, newQuestionEmail, newQuestionText);
+                      setNewQuestionText('');
+                      setQaSubmittedToast(true);
+                      setTimeout(() => setQaSubmittedToast(false), 4000);
+                    }} className="p-5 rounded-2xl bg-blue-50/50 border border-blue-200 space-y-4">
+                      <h5 className="text-xs font-bold text-slate-900 uppercase font-mono tracking-wider flex items-center gap-2">
+                        <Send className="w-3.5 h-3.5 text-blue-600" />
+                        <span>Ask a Question About {selectedComponent.name}</span>
+                      </h5>
+
+                      {qaSubmittedToast && (
+                        <div className="p-3 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Your question has been submitted successfully! Our engineering team will post an answer shortly.</span>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-600 uppercase font-mono mb-1">Your Name</label>
+                          <input
+                            type="text"
+                            value={newQuestionName}
+                            onChange={(e) => setNewQuestionName(e.target.value)}
+                            placeholder="e.g. Rahul Sharma"
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-blue-500 shadow-2xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-600 uppercase font-mono mb-1">Work / Personal Email</label>
+                          <input
+                            type="email"
+                            value={newQuestionEmail}
+                            onChange={(e) => setNewQuestionEmail(e.target.value)}
+                            placeholder="e.g. rahul@company.com"
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-blue-500 shadow-2xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase font-mono mb-1">Your Question *</label>
+                        <textarea
+                          rows={3}
+                          value={newQuestionText}
+                          onChange={(e) => setNewQuestionText(e.target.value)}
+                          placeholder="e.g. Is this board compatible with 5V logic inputs or requires a level shifter?"
+                          required
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-blue-500 shadow-2xs"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+                      >
+                        <Send className="w-3.5 h-3.5" />
+                        <span>Post Question</span>
+                      </button>
+                    </form>
+
+                    {/* Questions List */}
+                    <div className="space-y-4">
+                      {itemQas.length === 0 ? (
+                        <div className="text-center py-8 text-slate-500 text-xs bg-slate-50 rounded-2xl border border-slate-200">
+                          <MessageSquare className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                          <p className="font-bold text-slate-700">No questions asked yet for this component.</p>
+                          <p className="text-[11px] text-slate-400 mt-1">Be the first to submit a question above!</p>
+                        </div>
+                      ) : (
+                        itemQas.map((qa) => (
+                          <div key={qa.id} className="p-5 rounded-2xl bg-white border border-slate-200 space-y-3 shadow-2xs">
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="flex items-center gap-2 text-xs">
+                                <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs">
+                                  {qa.userName.charAt(0).toUpperCase()}
+                                </div>
+                                <div>
+                                  <span className="font-bold text-slate-900">{qa.userName}</span>
+                                  <span className="text-[10px] text-slate-400 font-mono ml-2">Asked on {qa.askedAt}</span>
+                                </div>
+                              </div>
+
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-extrabold font-mono ${
+                                qa.isAnswered ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
+                              }`}>
+                                {qa.isAnswered ? 'Answered' : 'Awaiting Answer'}
+                              </span>
+                            </div>
+
+                            <p className="text-xs font-semibold text-slate-800 pl-9">
+                              Q: {qa.question}
+                            </p>
+
+                            {/* Official Answer Box */}
+                            {qa.isAnswered && qa.answer && (
+                              <div className="ml-9 p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5">
+                                <div className="flex items-center gap-2">
+                                  <span className="px-2 py-0.5 rounded bg-blue-600 text-white font-mono text-[9px] font-extrabold uppercase">
+                                    Official OhmVeda Support
+                                  </span>
+                                  <span className="text-[10px] text-slate-400 font-mono">Answered on {qa.answeredAt}</span>
+                                </div>
+                                <p className="text-xs text-slate-700 leading-relaxed font-medium">
+                                  A: {qa.answer}
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                  </div>
+                )}
+
+                {/* TAB 5: CUSTOMER REVIEWS */}
+                {detailTab === 'reviews' && (
+                  <div className="space-y-8">
+                    
+                    {/* Rating Overview Box */}
+                    <div className="grid grid-cols-1 md:grid-cols-12 gap-6 p-6 rounded-2xl bg-slate-50 border border-slate-200">
+                      
+                      <div className="md:col-span-4 text-center md:text-left space-y-2 border-b md:border-b-0 md:border-r border-slate-200 pb-4 md:pb-0 md:pr-6">
+                        <div className="text-4xl font-extrabold text-slate-900 font-mono">
+                          {selectedComponent.rating} <span className="text-xl text-slate-400 font-normal">/ 5</span>
+                        </div>
+                        <div className="flex items-center justify-center md:justify-start gap-1">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <Star
+                              key={s}
+                              className={`w-5 h-5 ${
+                                s <= Math.round(selectedComponent.rating)
+                                  ? 'fill-amber-400 text-amber-400'
+                                  : 'text-slate-300'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-xs font-semibold text-slate-600">
+                          Based on {itemReviews.length} Verified Customer Reviews
+                        </p>
+                      </div>
+
+                      <div className="md:col-span-8 space-y-1.5">
+                        {[5, 4, 3, 2, 1].map((starVal) => {
+                          const count = itemReviews.filter((r) => Math.round(r.rating) === starVal).length;
+                          const pct = itemReviews.length > 0 ? Math.round((count / itemReviews.length) * 100) : starVal === 5 ? 85 : 5;
+                          return (
+                            <div key={starVal} className="flex items-center gap-3 text-xs font-mono">
+                              <span className="w-12 text-slate-600 font-bold">{starVal} Star</span>
+                              <div className="flex-1 h-2 rounded-full bg-slate-200 overflow-hidden">
+                                <div className="h-full bg-amber-400 rounded-full" style={{ width: `${pct}%` }} />
+                              </div>
+                              <span className="w-10 text-right text-slate-500 font-bold">{pct}%</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                    </div>
+
+                    {/* Write a Review Form */}
+                    <form onSubmit={(e) => {
+                      e.preventDefault();
+                      if (!newReviewTitle.trim() || !newReviewComment.trim()) return;
+                      addStoreReview(
+                        selectedComponent.id,
+                        newReviewName,
+                        newReviewEmail,
+                        newReviewRating,
+                        newReviewTitle,
+                        newReviewComment
+                      );
+                      setNewReviewTitle('');
+                      setNewReviewComment('');
+                      setReviewSubmittedToast(true);
+                      setTimeout(() => setReviewSubmittedToast(false), 4000);
+                    }} className="p-5 rounded-2xl bg-amber-50/50 border border-amber-200 space-y-4">
+                      
+                      <h5 className="text-xs font-bold text-slate-900 uppercase font-mono tracking-wider flex items-center gap-2">
+                        <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                        <span>Write a Review for {selectedComponent.name}</span>
+                      </h5>
+
+                      {reviewSubmittedToast && (
+                        <div className="p-3 rounded-xl bg-emerald-600 text-white text-xs font-bold flex items-center gap-2">
+                          <CheckCircle2 className="w-4 h-4" />
+                          <span>Thank you! Your customer review has been published and rating updated.</span>
+                        </div>
+                      )}
+
+                      {/* Interactive Rating Selector */}
+                      <div className="space-y-1">
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase font-mono">Overall Rating *</label>
+                        <div className="flex items-center gap-1.5">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <button
+                              key={star}
+                              type="button"
+                              onClick={() => setNewReviewRating(star)}
+                              className="p-1 hover:scale-110 transition-transform cursor-pointer"
+                            >
+                              <Star
+                                className={`w-6 h-6 ${
+                                  star <= newReviewRating
+                                    ? 'fill-amber-400 text-amber-400'
+                                    : 'text-slate-300 hover:text-amber-300'
+                                }`}
+                              />
+                            </button>
+                          ))}
+                          <span className="text-xs font-mono font-bold text-slate-700 ml-2">
+                            {newReviewRating} / 5 Stars
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-600 uppercase font-mono mb-1">Your Name</label>
+                          <input
+                            type="text"
+                            value={newReviewName}
+                            onChange={(e) => setNewReviewName(e.target.value)}
+                            placeholder="e.g. Dr. Vikram Mehta"
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-amber-500 shadow-2xs"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-600 uppercase font-mono mb-1">Work / Personal Email</label>
+                          <input
+                            type="email"
+                            value={newReviewEmail}
+                            onChange={(e) => setNewReviewEmail(e.target.value)}
+                            placeholder="e.g. vikram@techcorp.in"
+                            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-amber-500 shadow-2xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase font-mono mb-1">Review Headline / Title *</label>
+                        <input
+                          type="text"
+                          value={newReviewTitle}
+                          onChange={(e) => setNewReviewTitle(e.target.value)}
+                          placeholder="e.g. Outstanding Wi-Fi stability & solid build quality"
+                          required
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-amber-500 shadow-2xs"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[10px] font-bold text-slate-600 uppercase font-mono mb-1">Detailed Review & Bench Experience *</label>
+                        <textarea
+                          rows={3}
+                          value={newReviewComment}
+                          onChange={(e) => setNewReviewComment(e.target.value)}
+                          placeholder="Share details about performance, voltage stability, delivery, and overall component testing..."
+                          required
+                          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-amber-500 shadow-2xs"
+                        />
+                      </div>
+
+                      <button
+                        type="submit"
+                        className="px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs transition-all flex items-center gap-2 cursor-pointer shadow-xs"
+                      >
+                        <Star className="w-3.5 h-3.5 fill-slate-950" />
+                        <span>Submit Review</span>
+                      </button>
+                    </form>
+
+                    {/* Customer Reviews List */}
+                    <div className="space-y-4">
+                      {itemReviews.length === 0 ? (
+                        <div className="text-center py-8 text-slate-500 text-xs bg-slate-50 rounded-2xl border border-slate-200">
+                          <Star className="w-8 h-8 text-slate-300 mx-auto mb-2" />
+                          <p className="font-bold text-slate-700">No customer reviews yet for this component.</p>
+                          <p className="text-[11px] text-slate-400 mt-1">Be the first to write a review above!</p>
+                        </div>
+                      ) : (
+                        itemReviews.map((rev) => (
+                          <div key={rev.id} className="p-5 rounded-2xl bg-white border border-slate-200 space-y-2 shadow-2xs">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-0.5">
+                                  {[1, 2, 3, 4, 5].map((s) => (
+                                    <Star
+                                      key={s}
+                                      className={`w-4 h-4 ${
+                                        s <= rev.rating
+                                          ? 'fill-amber-400 text-amber-400'
+                                          : 'text-slate-200'
+                                      }`}
+                                    />
+                                  ))}
+                                </div>
+                                <span className="font-bold text-slate-900 text-xs">{rev.title}</span>
+                              </div>
+
+                              <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400">
+                                {rev.verifiedPurchase && (
+                                  <span className="px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                                    <span>Verified Purchase</span>
+                                  </span>
+                                )}
+                                <span>{rev.createdAt}</span>
+                              </div>
+                            </div>
+
+                            <p className="text-xs text-slate-700 leading-relaxed">
+                              {rev.comment}
+                            </p>
+
+                            <div className="text-[11px] text-slate-500 font-medium pt-1">
+                              — By <strong className="text-slate-800">{rev.userName}</strong>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+
+                  </div>
+                )}
+
+              </div>
+            );
+          })()}
+
+          {/* DOCUMENT INLINE PREVIEW MODAL */}
+          {viewingDocModal && (
+            <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4">
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full p-6 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                    <h3 className="font-bold text-slate-900 text-sm truncate max-w-md">
+                      {viewingDocModal.title}
+                    </h3>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setViewingDocModal(null)}
+                    className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+                  >
+                    <X className="w-5 h-5" />
+                  </button>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs text-slate-700">
+                  <div className="flex items-center gap-2 font-mono text-[11px] text-slate-500">
+                    <span>Document Type: <strong>{viewingDocModal.fileType}</strong></span>
+                    <span>•</span>
+                    <span>Size: <strong>{viewingDocModal.fileSize || 'N/A'}</strong></span>
+                  </div>
+                  <p className="leading-relaxed">
+                    This document is hosted in OhmVeda technical cloud repository. Click below to view or download the complete specification sheet.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setViewingDocModal(null)}
+                    className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                  {viewingDocModal.url && viewingDocModal.url !== '#' && (
+                    <a
+                      href={viewingDocModal.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Download className="w-4 h-4" />
+                      <span>Download PDF</span>
+                    </a>
+                  )}
                 </div>
               </div>
-            )}
-
-            {/* TAB 2: SPECS TABLE */}
-            {detailTab === 'specs' && (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs font-mono">
-                  <tbody className="divide-y divide-slate-200 border border-slate-200 rounded-xl overflow-hidden">
-                    <tr className="bg-slate-50">
-                      <td className="px-4 py-3 font-bold text-slate-700 w-1/3">Part SKU / Code</td>
-                      <td className="px-4 py-3 text-slate-900 font-bold">{selectedComponent.sku}</td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-3 font-bold text-slate-700">Category</td>
-                      <td className="px-4 py-3 text-slate-900">{compCategory?.label || selectedComponent.category}</td>
-                    </tr>
-                    <tr className="bg-slate-50">
-                      <td className="px-4 py-3 font-bold text-slate-700">Unit Stock Count</td>
-                      <td className="px-4 py-3 text-emerald-700 font-bold">{selectedComponent.stock} units available</td>
-                    </tr>
-                    <tr>
-                      <td className="px-4 py-3 font-bold text-slate-700">Key Highlights</td>
-                      <td className="px-4 py-3 text-slate-900">{(selectedComponent.specs || []).join(', ')}</td>
-                    </tr>
-                    <tr className="bg-slate-50">
-                      <td className="px-4 py-3 font-bold text-slate-700">GST Invoice & Tax</td>
-                      <td className="px-4 py-3 text-slate-900">Included (18% GST invoice provided)</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            )}
-
-            {/* TAB 3: APPLICATIONS */}
-            {detailTab === 'applications' && (
-              <div className="space-y-3 text-xs text-slate-600">
-                <h4 className="font-bold text-slate-900">Recommended Hardware Applications:</h4>
-                <ul className="list-disc list-inside space-y-1.5 pl-2 font-medium">
-                  <li>Industrial IoT automation & remote telemetry monitoring</li>
-                  <li>Custom microcontroller PCB assembly and firmware prototyping</li>
-                  <li>Smart agriculture, environmental sensing, and energy metering</li>
-                  <li>Robotics, motor drive controllers, and embedded edge node computing</li>
-                </ul>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* SIMILAR / RECOMMENDED COMPONENTS (Amazon/Flipkart Style Strip) */}
           {relatedComponents.length > 0 && (

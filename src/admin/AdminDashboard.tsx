@@ -18,6 +18,7 @@ import { CareersAndApplicantsManager } from './pages/CareersAndApplicantsManager
 import { BrandingManager } from './pages/BrandingManager';
 import { AdminAccountsManager } from './pages/AdminAccountsManager';
 import { AdminLogsManager } from './pages/AdminLogsManager';
+import { AdminLoginView } from './components/AdminLoginView';
 
 export interface AdminDashboardProps {
   products: TurnkeyProduct[];
@@ -27,6 +28,7 @@ export interface AdminDashboardProps {
   jobRoles?: JobRole[];
   userProfile: UserProfile | null;
   onOpenAuth: () => void;
+  onLoginSuccess?: (profile: UserProfile) => void;
   onLogout: () => void;
   onUpdateProducts: (products: TurnkeyProduct[]) => void;
   onUpdateStoreItems: (items: StoreItem[]) => void;
@@ -46,6 +48,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   jobRoles,
   userProfile,
   onOpenAuth,
+  onLoginSuccess = () => {},
   onLogout,
   onUpdateProducts,
   onUpdateStoreItems,
@@ -94,6 +97,17 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Counts for badge chips
   const jobAppsCount = getStoredJobApplications().length;
 
+  // IF NOT LOGGED IN OR NOT AUTHORIZED ADMIN: Show standalone AdminLoginView
+  if (!userProfile || !isAuthorized) {
+    return (
+      <AdminLoginView
+        userProfile={userProfile}
+        onLoginSuccess={onLoginSuccess}
+        onLogout={onLogout}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-100/80 text-slate-900 flex flex-col md:flex-row font-sans selection:bg-blue-500 selection:text-white">
       {/* Admin Sidebar Navigation */}
@@ -119,107 +133,68 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
-          {!userProfile ? (
-            <div className="py-16 text-center max-w-md mx-auto bg-white border border-slate-200 rounded-3xl p-8 shadow-xl">
-              <div className="w-12 h-12 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-center text-amber-600 mx-auto mb-4 text-xl">
-                🔒
-              </div>
-              <h2 className="text-base font-bold text-slate-900 mb-2">Admin Authentication Required</h2>
-              <p className="text-xs text-slate-600 mb-6 leading-relaxed">
-                Please log in with an authorized OhmVeda administrator account to access management tools.
-              </p>
-              <button
-                onClick={onOpenAuth}
-                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/20 transition-all"
-              >
-                Login as Administrator
-              </button>
-            </div>
-          ) : !isAuthorized ? (
-            <div className="py-16 text-center max-w-md mx-auto bg-white border border-slate-200 rounded-3xl p-8 shadow-xl">
-              <div className="w-12 h-12 bg-red-50 border border-red-200 rounded-2xl flex items-center justify-center text-red-600 mx-auto mb-4 text-xl">
-                🚫
-              </div>
-              <h2 className="text-base font-bold text-slate-900 mb-2">Unauthorized Access</h2>
-              <p className="text-xs text-slate-600 mb-2 leading-relaxed">
-                Logged in as <strong className="text-slate-900">{userProfile.email}</strong>.
-              </p>
-              <p className="text-xs text-slate-500 mb-6">
-                This account is not listed in the authorized administrators registry.
-              </p>
-              <button
-                onClick={onLogout}
-                className="px-5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold border border-slate-200"
-              >
-                Log Out
-              </button>
-            </div>
-          ) : (
-            <>
-              {activeTab === 'products' && (
-                <ProductsManager
-                  products={products}
-                  productCategories={productCategories}
-                  onUpdateProducts={onUpdateProducts}
-                  showToast={showToast}
-                  openDeleteConfirm={openDeleteConfirm}
-                  onNavigateToProducts={onNavigateToProducts}
-                />
-              )}
+          {activeTab === 'products' && (
+            <ProductsManager
+              products={products}
+              productCategories={productCategories}
+              onUpdateProducts={onUpdateProducts}
+              showToast={showToast}
+              openDeleteConfirm={openDeleteConfirm}
+              onNavigateToProducts={onNavigateToProducts}
+            />
+          )}
 
-              {activeTab === 'store' && (
-                <StoreManager
-                  storeItems={storeItems}
-                  storeCategories={storeCategories}
-                  onUpdateStoreItems={onUpdateStoreItems}
-                  showToast={showToast}
-                  openDeleteConfirm={openDeleteConfirm}
-                  onNavigateToStore={onNavigateToStore}
-                />
-              )}
+          {activeTab === 'store' && (
+            <StoreManager
+              storeItems={storeItems}
+              storeCategories={storeCategories}
+              onUpdateStoreItems={onUpdateStoreItems}
+              showToast={showToast}
+              openDeleteConfirm={openDeleteConfirm}
+              onNavigateToStore={onNavigateToStore}
+            />
+          )}
 
-              {activeTab === 'categories' && (
-                <CategoriesManager
-                  productCategories={productCategories}
-                  storeCategories={storeCategories}
-                  onUpdateProductCategories={onUpdateProductCategories}
-                  showToast={showToast}
-                  openDeleteConfirm={openDeleteConfirm}
-                />
-              )}
+          {activeTab === 'categories' && (
+            <CategoriesManager
+              productCategories={productCategories}
+              storeCategories={storeCategories}
+              onUpdateProductCategories={onUpdateProductCategories}
+              showToast={showToast}
+              openDeleteConfirm={openDeleteConfirm}
+            />
+          )}
 
-              {activeTab === 'careers' && (
-                <CareersAndApplicantsManager
-                  jobRoles={jobRoles}
-                  onUpdateJobRoles={onUpdateJobRoles}
-                  showToast={showToast}
-                  openDeleteConfirm={openDeleteConfirm}
-                />
-              )}
+          {activeTab === 'careers' && (
+            <CareersAndApplicantsManager
+              jobRoles={jobRoles}
+              onUpdateJobRoles={onUpdateJobRoles}
+              showToast={showToast}
+              openDeleteConfirm={openDeleteConfirm}
+            />
+          )}
 
-              {activeTab === 'branding' && (
-                <BrandingManager showToast={showToast} />
-              )}
+          {activeTab === 'branding' && (
+            <BrandingManager showToast={showToast} />
+          )}
 
-              {activeTab === 'access' && (
-                <AdminAccountsManager
-                  showToast={showToast}
-                  openDeleteConfirm={openDeleteConfirm}
-                />
-              )}
+          {activeTab === 'access' && (
+            <AdminAccountsManager
+              showToast={showToast}
+              openDeleteConfirm={openDeleteConfirm}
+            />
+          )}
 
-              {activeTab === 'logs' && (
-                <AdminLogsManager
-                  onUpdateProducts={onUpdateProducts}
-                  onUpdateStoreItems={onUpdateStoreItems}
-                  onUpdateProductCategories={onUpdateProductCategories}
-                  onUpdateStoreCategories={onUpdateStoreCategories}
-                  onUpdateJobRoles={onUpdateJobRoles}
-                  showToast={showToast}
-                  openDeleteConfirm={openDeleteConfirm}
-                />
-              )}
-            </>
+          {activeTab === 'logs' && (
+            <AdminLogsManager
+              onUpdateProducts={onUpdateProducts}
+              onUpdateStoreItems={onUpdateStoreItems}
+              onUpdateProductCategories={onUpdateProductCategories}
+              onUpdateStoreCategories={onUpdateStoreCategories}
+              onUpdateJobRoles={onUpdateJobRoles}
+              showToast={showToast}
+              openDeleteConfirm={openDeleteConfirm}
+            />
           )}
         </main>
       </div>

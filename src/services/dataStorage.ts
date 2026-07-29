@@ -1,4 +1,4 @@
-import { CareerPageSettings, JobApplication, JobRole, ProductCategory, StoreCategory, StoreItem, TurnkeyProduct } from '../types';
+import { CareerPageSettings, CompanyContactInfo, JobApplication, JobRole, ProductCategory, StoreCategory, StoreItem, StoreQaItem, StoreReviewItem, TechnicalDocument, TurnkeyProduct } from '../types';
 import { STORE_PRODUCTS } from '../data/storeProducts';
 import { INITIAL_TURNKEY_PRODUCTS } from '../data/turnkeyProducts';
 import { INITIAL_JOB_ROLES } from '../data/careersData';
@@ -21,6 +21,9 @@ const STORAGE_KEYS = {
   JOB_ROLES: 'ohmveda_job_roles_v1',
   JOB_APPLICATIONS: 'ohmveda_job_applications_v1',
   CUSTOM_LOGO: 'ohmveda_custom_logo_v1',
+  COMPANY_CONTACT: 'ohmveda_company_contact_v1',
+  STORE_QAS: 'ohmveda_store_qas_v1',
+  STORE_REVIEWS: 'ohmveda_store_reviews_v1',
 };
 
 export const DEFAULT_AUTHORIZED_ADMIN_EMAILS: string[] = [
@@ -189,14 +192,14 @@ export function getStoredStoreItems(): StoreItem[] {
     const raw = localStorage.getItem(STORAGE_KEYS.STORE_ITEMS);
     if (raw !== null) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed)) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         return parsed;
       }
     }
   } catch (err) {
     console.error('Error reading store items:', err);
   }
-  return [];
+  return STORE_PRODUCTS;
 }
 
 // Helper to save store items
@@ -572,19 +575,37 @@ export function getStoredJobRoles(): JobRole[] {
   } catch (err) {
     console.error('Error reading job roles:', err);
   }
-  return INITIAL_JOB_ROLES;
+  const isInit = localStorage.getItem('ohmveda_job_roles_init') === 'true';
+  return isInit ? [] : INITIAL_JOB_ROLES;
 }
 
 export function saveStoredJobRoles(roles: JobRole[]): void {
   try {
+    localStorage.setItem('ohmveda_job_roles_init', 'true');
     localStorage.setItem(STORAGE_KEYS.JOB_ROLES, JSON.stringify(roles));
     roles.forEach((r) => {
       setDoc(doc(db, 'job_roles', r.id), sanitizeForFirestore(r), { merge: true }).catch((err) =>
         console.error('Firestore save job role error:', err)
       );
     });
+    window.dispatchEvent(new Event('ohmveda_job_roles_updated'));
   } catch (err) {
     console.error('Error saving job roles:', err);
+  }
+}
+
+export function deleteStoredJobRole(id: string): void {
+  try {
+    localStorage.setItem('ohmveda_job_roles_init', 'true');
+    const current = getStoredJobRoles();
+    const updated = current.filter((j) => j.id !== id);
+    localStorage.setItem(STORAGE_KEYS.JOB_ROLES, JSON.stringify(updated));
+    deleteDoc(doc(db, 'job_roles', id)).catch((err) =>
+      console.error('Firestore delete job role error:', err)
+    );
+    window.dispatchEvent(new Event('ohmveda_job_roles_updated'));
+  } catch (err) {
+    console.error('Error deleting job role:', err);
   }
 }
 
@@ -611,6 +632,19 @@ export function saveStoredJobApplications(apps: JobApplication[]): void {
     });
   } catch (err) {
     console.error('Error saving job applications:', err);
+  }
+}
+
+export function deleteStoredJobApplication(id: string): void {
+  try {
+    const current = getStoredJobApplications();
+    const updated = current.filter((a) => a.id !== id);
+    localStorage.setItem(STORAGE_KEYS.JOB_APPLICATIONS, JSON.stringify(updated));
+    deleteDoc(doc(db, 'job_applications', id)).catch((err) =>
+      console.error('Firestore delete job application error:', err)
+    );
+  } catch (err) {
+    console.error('Error deleting job application:', err);
   }
 }
 
@@ -658,6 +692,292 @@ export function saveStoredCareerSettings(settings: CareerPageSettings): void {
   }
 }
 
+export const DEFAULT_COMPANY_CONTACT: CompanyContactInfo = {
+  email: 'ohmvedatechnologies@gmail.com',
+  phone: '+91 98765 43210',
+  phoneSecondary: '+91 (80) 4123-8900',
+  companyName: 'OhmVeda Technologies Private Limited',
+  addressTitle: 'Engineering Office & R&D Lab',
+  addressLine1: 'Tech Innovation Hub, Block B, Electronic City Phase 1,',
+  addressLine2: 'Bengaluru, Karnataka 560100, India',
+};
+
+export function getStoredCompanyContact(): CompanyContactInfo {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.COMPANY_CONTACT);
+    if (raw !== null) {
+      const parsed = JSON.parse(raw);
+      return {
+        email: parsed.email || DEFAULT_COMPANY_CONTACT.email,
+        phone: parsed.phone || DEFAULT_COMPANY_CONTACT.phone,
+        phoneSecondary: parsed.phoneSecondary ?? DEFAULT_COMPANY_CONTACT.phoneSecondary,
+        companyName: parsed.companyName || DEFAULT_COMPANY_CONTACT.companyName,
+        addressTitle: parsed.addressTitle || DEFAULT_COMPANY_CONTACT.addressTitle,
+        addressLine1: parsed.addressLine1 || DEFAULT_COMPANY_CONTACT.addressLine1,
+        addressLine2: parsed.addressLine2 || DEFAULT_COMPANY_CONTACT.addressLine2,
+      };
+    }
+  } catch (err) {
+    console.error('Error reading company contact info:', err);
+  }
+  return DEFAULT_COMPANY_CONTACT;
+}
+
+export function saveStoredCompanyContact(info: CompanyContactInfo): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.COMPANY_CONTACT, JSON.stringify(info));
+    setDoc(doc(db, 'app_settings', 'company_contact'), sanitizeForFirestore(info), { merge: true }).catch((err) =>
+      console.error('Firestore save company contact error:', err)
+    );
+    window.dispatchEvent(new Event('ohmveda_contact_info_updated'));
+  } catch (err) {
+    console.error('Error saving company contact info:', err);
+  }
+}
+
+// =========================================================================
+// STORE Q&A AND CUSTOMER REVIEWS STORAGE
+// =========================================================================
+
+export const INITIAL_STORE_QAS: StoreQaItem[] = [
+  {
+    id: 'qa-1',
+    itemId: 'store-esp32-wroom',
+    userName: 'Vikram Mehta',
+    userEmail: 'vikram.m@techcorp.in',
+    question: 'Is this ESP32 module operating on 3.3V or 5V logic level for GPIO pins?',
+    askedAt: '2026-03-01',
+    answer: 'All ESP32 GPIO pins operate at 3.3V digital logic level. If connecting to 5V sensors or microcontrollers, please use a bidirectional logic level shifter to protect the chip.',
+    answeredBy: 'OhmVeda Technical Team',
+    answeredAt: '2026-03-01',
+    isAnswered: true,
+  },
+  {
+    id: 'qa-2',
+    itemId: 'store-esp32-wroom',
+    userName: 'Ananya Sharma',
+    userEmail: 'ananya@iotlabs.org',
+    question: 'Does this come with pre-flashed AT firmware or Arduino bootloader?',
+    askedAt: '2026-03-12',
+    answer: 'It comes loaded with Espressif AT command firmware out of the box. You can easily flash custom Arduino C++, ESP-IDF, or MicroPython code via USB-UART bridge.',
+    answeredBy: 'OhmVeda Engineering Support',
+    answeredAt: '2026-03-12',
+    isAnswered: true,
+  },
+  {
+    id: 'qa-3',
+    itemId: 'store-oled-display',
+    userName: 'Rohan Patel',
+    userEmail: 'rohan.p@embed.io',
+    question: 'What is the default I2C slave address for this 0.96" OLED display?',
+    askedAt: '2026-02-20',
+    answer: 'The default I2C address is 0x3C. It can be changed to 0x3D by resoldering the jumper resistor on the back PCB.',
+    answeredBy: 'OhmVeda Support',
+    answeredAt: '2026-02-21',
+    isAnswered: true,
+  },
+];
+
+export const INITIAL_STORE_REVIEWS: StoreReviewItem[] = [
+  {
+    id: 'rev-1',
+    itemId: 'store-esp32-wroom',
+    userName: 'Dr. Suresh Kumar',
+    userEmail: 'suresh@iit.ac.in',
+    rating: 5,
+    title: 'Outstanding Wi-Fi Range & Solid Bench Performance',
+    comment: 'We purchased 15 units for our university IoT prototyping lab. Outstanding signal stability on 2.4GHz Wi-Fi, zero voltage drops under continuous BLE transmission. Prompt delivery and authentic Espressif chipsets!',
+    createdAt: '2026-02-14',
+    verifiedPurchase: true,
+  },
+  {
+    id: 'rev-2',
+    itemId: 'store-esp32-wroom',
+    userName: 'Karthik Raja',
+    userEmail: 'karthik@embeddedpro.in',
+    rating: 5,
+    title: 'Genuine Board with GST Invoice Provided',
+    comment: 'Component works flawlessly with ESP-IDF and FreeRTOS tasks. Received 18% GST tax invoice for company accounting. Highly recommended for industrial hardware builds.',
+    createdAt: '2026-02-28',
+    verifiedPurchase: true,
+  },
+  {
+    id: 'rev-3',
+    itemId: 'store-arduino-uno',
+    userName: 'Neha Verma',
+    userEmail: 'neha.v@robotics.co',
+    rating: 5,
+    title: 'Genuine ATmega328P DIP Chip',
+    comment: 'Original Microchip MCU on removable DIP socket. Perfect for testing and flashing custom bootloaders.',
+    createdAt: '2026-03-02',
+    verifiedPurchase: true,
+  },
+];
+
+// Q&A Helpers
+export function getStoredStoreQas(): StoreQaItem[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.STORE_QAS);
+    if (raw !== null) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (err) {
+    console.error('Error reading store QAs:', err);
+  }
+  return INITIAL_STORE_QAS;
+}
+
+export function saveStoredStoreQas(qas: StoreQaItem[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.STORE_QAS, JSON.stringify(qas));
+    qas.forEach((qa) => {
+      setDoc(doc(db, 'store_qas', qa.id), sanitizeForFirestore(qa), { merge: true }).catch((err) =>
+        console.error('Firestore save store QA error:', err)
+      );
+    });
+    window.dispatchEvent(new Event('ohmveda_store_qas_updated'));
+  } catch (err) {
+    console.error('Error saving store QAs:', err);
+  }
+}
+
+export function addStoreQuestion(itemId: string, userName: string, userEmail: string, question: string): StoreQaItem {
+  const current = getStoredStoreQas();
+  const newQa: StoreQaItem = {
+    id: `qa-${Date.now()}`,
+    itemId,
+    userName: userName.trim() || 'Anonymous User',
+    userEmail: userEmail.trim(),
+    question: question.trim(),
+    askedAt: new Date().toISOString().split('T')[0],
+    isAnswered: false,
+  };
+  const updated = [newQa, ...current];
+  saveStoredStoreQas(updated);
+  return newQa;
+}
+
+export function answerStoreQuestion(qaId: string, answer: string, answeredBy: string = 'OhmVeda Technical Team'): void {
+  const current = getStoredStoreQas();
+  const updated = current.map((q) =>
+    q.id === qaId
+      ? {
+          ...q,
+          answer: answer.trim(),
+          answeredBy,
+          answeredAt: new Date().toISOString().split('T')[0],
+          isAnswered: true,
+        }
+      : q
+  );
+  saveStoredStoreQas(updated);
+}
+
+export function deleteStoreQuestion(qaId: string): void {
+  const current = getStoredStoreQas();
+  const updated = current.filter((q) => q.id !== qaId);
+  saveStoredStoreQas(updated);
+  deleteFirestoreDoc('store_qas', qaId);
+}
+
+// Reviews Helpers
+export function getStoredStoreReviews(): StoreReviewItem[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.STORE_REVIEWS);
+    if (raw !== null) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (err) {
+    console.error('Error reading store reviews:', err);
+  }
+  return INITIAL_STORE_REVIEWS;
+}
+
+export function saveStoredStoreReviews(reviews: StoreReviewItem[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.STORE_REVIEWS, JSON.stringify(reviews));
+    reviews.forEach((rev) => {
+      setDoc(doc(db, 'store_reviews', rev.id), sanitizeForFirestore(rev), { merge: true }).catch((err) =>
+        console.error('Firestore save store review error:', err)
+      );
+    });
+    window.dispatchEvent(new Event('ohmveda_store_reviews_updated'));
+  } catch (err) {
+    console.error('Error saving store reviews:', err);
+  }
+}
+
+export function addStoreReview(
+  itemId: string,
+  userName: string,
+  userEmail: string,
+  rating: number,
+  title: string,
+  comment: string
+): StoreReviewItem {
+  const currentReviews = getStoredStoreReviews();
+  const newReview: StoreReviewItem = {
+    id: `rev-${Date.now()}`,
+    itemId,
+    userName: userName.trim() || 'Verified Buyer',
+    userEmail: userEmail.trim(),
+    rating: Math.max(1, Math.min(5, rating)),
+    title: title.trim(),
+    comment: comment.trim(),
+    createdAt: new Date().toISOString().split('T')[0],
+    verifiedPurchase: true,
+  };
+  const updatedReviews = [newReview, ...currentReviews];
+  saveStoredStoreReviews(updatedReviews);
+
+  // Recalculate rating & reviews count for item
+  const itemReviews = updatedReviews.filter((r) => r.itemId === itemId);
+  const totalRating = itemReviews.reduce((sum, r) => sum + r.rating, 0);
+  const avgRating = itemReviews.length > 0 ? parseFloat((totalRating / itemReviews.length).toFixed(1)) : 5.0;
+
+  const currentItems = getStoredStoreItems();
+  const updatedItems = currentItems.map((item) =>
+    item.id === itemId
+      ? {
+          ...item,
+          rating: avgRating,
+          reviewsCount: itemReviews.length,
+        }
+      : item
+  );
+  saveStoredStoreItems(updatedItems);
+
+  return newReview;
+}
+
+export function deleteStoreReview(reviewId: string): void {
+  const current = getStoredStoreReviews();
+  const deleted = current.find((r) => r.id === reviewId);
+  const updated = current.filter((r) => r.id !== reviewId);
+  saveStoredStoreReviews(updated);
+  deleteFirestoreDoc('store_reviews', reviewId);
+
+  if (deleted) {
+    const itemReviews = updated.filter((r) => r.itemId === deleted.itemId);
+    const totalRating = itemReviews.reduce((sum, r) => sum + r.rating, 0);
+    const avgRating = itemReviews.length > 0 ? parseFloat((totalRating / itemReviews.length).toFixed(1)) : 5.0;
+
+    const currentItems = getStoredStoreItems();
+    const updatedItems = currentItems.map((item) =>
+      item.id === deleted.itemId
+        ? {
+            ...item,
+            rating: avgRating,
+            reviewsCount: itemReviews.length,
+          }
+        : item
+    );
+    saveStoredStoreItems(updatedItems);
+  }
+}
+
 // =========================================================================
 // REAL-TIME FIRESTORE DATA SYNCHRONIZATION Across All Devices
 // =========================================================================
@@ -670,6 +990,8 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   jobApplications?: JobApplication[];
   adminEmails?: string[];
   customLogo?: string | null;
+  storeQas?: StoreQaItem[];
+  storeReviews?: StoreReviewItem[];
 }) => void) {
   const unsubs: (() => void)[] = [];
 
@@ -699,13 +1021,14 @@ export function subscribeToFirestoreData(onUpdate: (data: {
             sku: data.sku || 'OV-CMP-ITEM',
             category: data.category || '',
             badge: data.badge,
+            documents: Array.isArray(data.documents) ? data.documents : [],
           };
         });
         localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify(items));
         onUpdate({ storeItems: items });
       } else {
-        localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify([]));
-        onUpdate({ storeItems: [] });
+        localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify(STORE_PRODUCTS));
+        onUpdate({ storeItems: STORE_PRODUCTS });
       }
     });
     unsubs.push(unsub);
@@ -768,19 +1091,27 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   try {
     const unsub = onSnapshot(collection(db, 'job_roles'), (snapshot) => {
       if (!snapshot.empty) {
+        localStorage.setItem('ohmveda_job_roles_init', 'true');
         const roles = snapshot.docs.map((docSnap) => docSnap.data() as JobRole);
         localStorage.setItem(STORAGE_KEYS.JOB_ROLES, JSON.stringify(roles));
         onUpdate({ jobRoles: roles });
       } else {
-        const local = getStoredJobRoles();
-        const rolesToSeed = local.length > 0 ? local : INITIAL_JOB_ROLES;
-        rolesToSeed.forEach((r) => {
-          setDoc(doc(db, 'job_roles', r.id), r, { merge: true }).catch((err) =>
-            console.error('Firestore seed job role error:', err)
-          );
-        });
-        localStorage.setItem(STORAGE_KEYS.JOB_ROLES, JSON.stringify(rolesToSeed));
-        onUpdate({ jobRoles: rolesToSeed });
+        const isInitialized = localStorage.getItem('ohmveda_job_roles_init') === 'true';
+        if (!isInitialized) {
+          localStorage.setItem('ohmveda_job_roles_init', 'true');
+          const local = getStoredJobRoles();
+          const rolesToSeed = local.length > 0 ? local : INITIAL_JOB_ROLES;
+          rolesToSeed.forEach((r) => {
+            setDoc(doc(db, 'job_roles', r.id), sanitizeForFirestore(r), { merge: true }).catch((err) =>
+              console.error('Firestore seed job role error:', err)
+            );
+          });
+          localStorage.setItem(STORAGE_KEYS.JOB_ROLES, JSON.stringify(rolesToSeed));
+          onUpdate({ jobRoles: rolesToSeed });
+        } else {
+          localStorage.setItem(STORAGE_KEYS.JOB_ROLES, JSON.stringify([]));
+          onUpdate({ jobRoles: [] });
+        }
       }
     });
     unsubs.push(unsub);
@@ -847,6 +1178,56 @@ export function subscribeToFirestoreData(onUpdate: (data: {
     unsubs.push(unsub);
   } catch (e) {
     console.error('Custom logo subscription error:', e);
+  }
+
+  // 10. Company Contact Info Listener
+  try {
+    const unsub = onSnapshot(doc(db, 'app_settings', 'company_contact'), (docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data() as CompanyContactInfo;
+        if (data && data.email) {
+          localStorage.setItem(STORAGE_KEYS.COMPANY_CONTACT, JSON.stringify(data));
+          window.dispatchEvent(new Event('ohmveda_contact_info_updated'));
+        }
+      }
+    });
+    unsubs.push(unsub);
+  } catch (e) {
+    console.error('Company contact info subscription error:', e);
+  }
+
+  // 11. Store QAs Listener
+  try {
+    const unsub = onSnapshot(collection(db, 'store_qas'), (snapshot) => {
+      if (!snapshot.empty) {
+        const qas = snapshot.docs.map((docSnap) => docSnap.data() as StoreQaItem);
+        localStorage.setItem(STORAGE_KEYS.STORE_QAS, JSON.stringify(qas));
+        onUpdate({ storeQas: qas });
+      } else {
+        localStorage.setItem(STORAGE_KEYS.STORE_QAS, JSON.stringify(INITIAL_STORE_QAS));
+        onUpdate({ storeQas: INITIAL_STORE_QAS });
+      }
+    });
+    unsubs.push(unsub);
+  } catch (e) {
+    console.error('Store QAs subscription error:', e);
+  }
+
+  // 12. Store Reviews Listener
+  try {
+    const unsub = onSnapshot(collection(db, 'store_reviews'), (snapshot) => {
+      if (!snapshot.empty) {
+        const reviews = snapshot.docs.map((docSnap) => docSnap.data() as StoreReviewItem);
+        localStorage.setItem(STORAGE_KEYS.STORE_REVIEWS, JSON.stringify(reviews));
+        onUpdate({ storeReviews: reviews });
+      } else {
+        localStorage.setItem(STORAGE_KEYS.STORE_REVIEWS, JSON.stringify(INITIAL_STORE_REVIEWS));
+        onUpdate({ storeReviews: INITIAL_STORE_REVIEWS });
+      }
+    });
+    unsubs.push(unsub);
+  } catch (e) {
+    console.error('Store reviews subscription error:', e);
   }
 
   return () => {

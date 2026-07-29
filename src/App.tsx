@@ -173,9 +173,6 @@ export default function App() {
     } catch (err) {
       console.error('Error clearing user profile:', err);
     }
-    if (currentPage === 'admin') {
-      setCurrentPage('home');
-    }
   };
 
   // Scroll Spy Effect when on Main / Home Page
@@ -375,6 +372,7 @@ export default function App() {
               jobRoles={jobRoles}
               userProfile={userProfile}
               onOpenAuth={() => setAuthModalOpen(true)}
+              onLoginSuccess={handleLoginSuccess}
               onLogout={handleLogout}
               onUpdateProducts={handleUpdateProducts}
               onUpdateStoreItems={handleUpdateStoreItems}

@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { CareerPageSettings, JobApplication, JobRole } from '../../types';
 import { 
-  addAdminLog, getStoredCareerSettings, getStoredJobApplications, 
+  addAdminLog, deleteStoredJobRole, getStoredCareerSettings, getStoredJobApplications, 
   getStoredJobRoles, saveStoredCareerSettings, saveStoredJobApplications, saveStoredJobRoles 
 } from '../../services/dataStorage';
 
@@ -252,9 +252,9 @@ export const CareersAndApplicantsManager: React.FC<CareersAndApplicantsManagerPr
       'Delete Job Opening',
       `Are you sure you want to permanently delete position "${title}"?`,
       () => {
+        deleteStoredJobRole(id);
         const updated = jobRolesList.filter((j) => j.id !== id);
         setJobRolesList(updated);
-        saveStoredJobRoles(updated);
         if (onUpdateJobRoles) onUpdateJobRoles(updated);
         addAdminLog({
           action: 'DELETE',

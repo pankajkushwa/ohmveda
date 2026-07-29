@@ -11,6 +11,40 @@ export interface StoreCategory {
   description?: string;
 }
 
+export interface TechnicalDocument {
+  id: string;
+  title: string;
+  fileType: 'Datasheet' | 'Schematic' | 'Manual' | 'CAD' | 'Zip' | string;
+  url: string;
+  fileSize?: string;
+  uploadedAt?: string;
+}
+
+export interface StoreQaItem {
+  id: string;
+  itemId: string; // StoreItem ID
+  userName: string;
+  userEmail?: string;
+  question: string;
+  askedAt: string;
+  answer?: string;
+  answeredBy?: string;
+  answeredAt?: string;
+  isAnswered: boolean;
+}
+
+export interface StoreReviewItem {
+  id: string;
+  itemId: string; // StoreItem ID
+  userName: string;
+  userEmail?: string;
+  rating: number; // 1 to 5
+  title: string;
+  comment: string;
+  createdAt: string;
+  verifiedPurchase?: boolean;
+}
+
 export interface StoreItem {
   id: string;
   name: string;
@@ -28,6 +62,7 @@ export interface StoreItem {
   specs: string[];
   sku: string;
   badge?: string;
+  documents?: TechnicalDocument[];
 }
 
 export interface CartItem {
@@ -243,4 +278,14 @@ export interface CareerPageSettings {
   headline: string;
   subheadline: string;
   instructions?: string;
+}
+
+export interface CompanyContactInfo {
+  email: string;
+  phone: string;
+  phoneSecondary?: string;
+  companyName: string;
+  addressTitle: string;
+  addressLine1: string;
+  addressLine2: string;
 }

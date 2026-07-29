@@ -36,7 +36,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     { id: 'store', label: 'Store Inventory', icon: Cpu, badge: storeCount },
     { id: 'categories', label: 'Categories Manager', icon: Layers },
     { id: 'careers', label: 'Careers & Applicants', icon: Briefcase, badge: jobAppsCount },
-    { id: 'branding', label: 'Logo & Branding', icon: Image },
+    { id: 'branding', label: 'Brand & Contact Info', icon: Image },
     { id: 'access', label: 'Admin Accounts', icon: UserCheck },
     { id: 'logs', label: 'System Logs & Reset', icon: Activity },
   ];

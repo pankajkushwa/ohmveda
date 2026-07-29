@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Cpu, Mail, ArrowUp, Code2, Wifi, Zap } from 'lucide-react';
 import { COMPANY_INFO } from '../data/companyData';
 import { OhmVedaLogo } from './OhmVedaLogo';
+import { getStoredCompanyContact } from '../services/dataStorage';
 
 interface FooterProps {
   onOpenInquiry: () => void;
@@ -9,6 +10,16 @@ interface FooterProps {
 }
 
 export const Footer: React.FC<FooterProps> = ({ onOpenInquiry, onNavigate }) => {
+  const [contactEmail, setContactEmail] = useState<string>(() => getStoredCompanyContact().email);
+
+  useEffect(() => {
+    const handleUpdate = () => {
+      setContactEmail(getStoredCompanyContact().email);
+    };
+    window.addEventListener('ohmveda_contact_info_updated', handleUpdate);
+    return () => window.removeEventListener('ohmveda_contact_info_updated', handleUpdate);
+  }, []);
+
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -116,11 +127,11 @@ export const Footer: React.FC<FooterProps> = ({ onOpenInquiry, onNavigate }) => 
             </p>
 
             <a
-              href={`mailto:${COMPANY_INFO.contactEmail}`}
+              href={`mailto:${contactEmail}`}
               className="inline-flex items-center gap-2 text-xs font-mono font-bold text-slate-800 hover:text-blue-600 transition-colors p-2.5 rounded-lg bg-slate-50 border border-slate-200 hover:border-slate-300 w-full"
             >
               <Mail className="w-4 h-4 text-blue-600 shrink-0" />
-              <span className="truncate">{COMPANY_INFO.contactEmail}</span>
+              <span className="truncate">{contactEmail}</span>
             </a>
 
             <button
