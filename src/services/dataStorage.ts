@@ -1,4 +1,4 @@
-import { JobApplication, JobRole, ProductCategory, StoreCategory, StoreItem, TurnkeyProduct } from '../types';
+import { CareerPageSettings, JobApplication, JobRole, ProductCategory, StoreCategory, StoreItem, TurnkeyProduct } from '../types';
 import { STORE_PRODUCTS } from '../data/storeProducts';
 import { INITIAL_TURNKEY_PRODUCTS } from '../data/turnkeyProducts';
 import { INITIAL_JOB_ROLES } from '../data/careersData';
@@ -579,7 +579,7 @@ export function saveStoredJobRoles(roles: JobRole[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.JOB_ROLES, JSON.stringify(roles));
     roles.forEach((r) => {
-      setDoc(doc(db, 'job_roles', r.id), r, { merge: true }).catch((err) =>
+      setDoc(doc(db, 'job_roles', r.id), sanitizeForFirestore(r), { merge: true }).catch((err) =>
         console.error('Firestore save job role error:', err)
       );
     });
@@ -605,7 +605,7 @@ export function saveStoredJobApplications(apps: JobApplication[]): void {
   try {
     localStorage.setItem(STORAGE_KEYS.JOB_APPLICATIONS, JSON.stringify(apps));
     apps.forEach((a) => {
-      setDoc(doc(db, 'job_applications', a.id), a, { merge: true }).catch((err) =>
+      setDoc(doc(db, 'job_applications', a.id), sanitizeForFirestore(a), { merge: true }).catch((err) =>
         console.error('Firestore save job application error:', err)
       );
     });
@@ -619,12 +619,43 @@ export function addJobApplication(appData: Omit<JobApplication, 'id' | 'appliedA
   const newApp: JobApplication = {
     ...appData,
     id: `app-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-    appliedAt: new Date().toLocaleString(),
-    status: 'Pending',
+    appliedAt: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+    status: 'New',
   };
   const updated = [newApp, ...current];
   saveStoredJobApplications(updated);
   return newApp;
+}
+
+export const DEFAULT_CAREER_SETTINGS: CareerPageSettings = {
+  enabled: true,
+  contactEmail: 'careers@ohmveda.com',
+  headline: 'Build the Future of Hardware & Embedded Intelligence',
+  subheadline: 'Join our multidisciplinary engineering team in Vadodara and Ahmedabad to build connected edge systems, custom PCBs, and high-performance software.',
+  instructions: 'Submit your candidate application directly through our portal or reach out to our talent acquisition lead.',
+};
+
+export function getStoredCareerSettings(): CareerPageSettings {
+  try {
+    const raw = localStorage.getItem('ohmveda_career_settings_v1');
+    if (raw !== null) {
+      return JSON.parse(raw);
+    }
+  } catch (err) {
+    console.error('Error reading career settings:', err);
+  }
+  return DEFAULT_CAREER_SETTINGS;
+}
+
+export function saveStoredCareerSettings(settings: CareerPageSettings): void {
+  try {
+    localStorage.setItem('ohmveda_career_settings_v1', JSON.stringify(settings));
+    setDoc(doc(db, 'app_settings', 'careers'), sanitizeForFirestore(settings), { merge: true }).catch((err) =>
+      console.error('Firestore save career settings error:', err)
+    );
+  } catch (err) {
+    console.error('Error saving career settings:', err);
+  }
 }
 
 // =========================================================================

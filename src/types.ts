@@ -147,33 +147,100 @@ export interface TurnkeyProduct {
 
 export interface JobRole {
   id: string;
+  jobIdRef?: string; // e.g. "OVT-EMB-001"
   title: string;
-  department: string; // e.g. 'Software', 'Hardware', 'Sales', 'Purchase', 'Operations'
-  location: string; // e.g. "Ahmedabad, India (Hybrid)", "Remote"
-  workType: 'Full-Time' | 'Part-Time' | 'Contract' | 'Internship';
-  openingsCount: number; // e.g. 3
-  experience: string; // e.g. "2-5 Years"
-  salaryRange?: string; // e.g. "₹6,00,000 - ₹12,00,000 PA"
+  department: string; // e.g. 'Embedded Systems', 'Hardware & Electronics', 'PCB Design', 'IoT & Automation', 'Software Development', 'Web Development', 'Mobile Application', 'IT & Cloud', 'R&D'
+  jobType?: 'Full Time' | 'Part Time' | 'Internship' | 'Freelance' | 'Contract' | string;
+  workType?: string; // legacy support
+  workMode?: 'On-site' | 'Hybrid' | 'Remote' | string;
+  location: string; // e.g. "Vadodara, Gujarat", "Ahmedabad, Gujarat", "Remote", "Multiple Locations"
+  openingsCount: number; // e.g. 2
+  experience: 'Fresher' | '0–1 Years' | '1–3 Years' | '3–5 Years' | '5+ Years' | string;
+  
+  // Salary / CTC
+  salaryMode?: 'not_disclosed' | 'negotiable' | 'fixed' | 'range';
+  minCtc?: string;
+  maxCtc?: string;
+  currency?: string;
+  isNegotiable?: boolean;
+  salaryRange?: string; // formatted salary
+
   description: string;
+  aboutRole?: string;
   responsibilities: string[];
   requirements: string[];
+  qualifications?: string[];
   keySkills: string[];
-  isActive: boolean;
+  preferredSkills?: string[];
+
+  // Job Application Settings
+  applicationMethod?: 'website' | 'email' | 'external' | string;
+  contactEmail?: string;
+  externalUrl?: string;
+
+  // Job Status & Dates
+  status?: 'Draft' | 'Published' | 'Paused' | 'Closed' | 'Archived';
+  isActive: boolean; // boolean indicator
   postedDate: string;
+  applicationDeadline?: string;
+  closingDate?: string;
 }
 
 export interface JobApplication {
   id: string;
   jobId: string;
   jobTitle: string;
-  applicantName: string;
+  
+  // Personal Details
+  fullName: string;
+  applicantName?: string; // legacy support
   email: string;
   phone: string;
-  experienceYears?: string;
+  currentLocation?: string;
+  dateOfBirth?: string;
+
+  // Professional Details
   currentCompany?: string;
+  totalExperience?: string;
+  experienceYears?: string; // legacy support
+  relevantExperience?: string;
+  currentSalary?: string;
+  expectedSalary?: string;
+  noticePeriod?: string;
+  highestQualification?: string;
+
+  // Documents & Links
   coverLetter: string;
   resumeFileName?: string;
   resumeDataUrl?: string; // Base64 or URL
+  resumeUrl?: string;
+  portfolioUrl?: string;
+  linkedInUrl?: string;
+  gitHubUrl?: string;
+
+  // Additional Questions
+  whyJoin?: string;
+  willingToRelocate?: boolean | string;
+  availableForInterview?: boolean | string;
+
   appliedAt: string;
-  status: 'Pending' | 'Reviewed' | 'Shortlisted' | 'Rejected';
+  status: 'New' | 'Under Review' | 'Shortlisted' | 'Interview' | 'Selected' | 'Rejected' | 'Pending' | 'Reviewed' | 'Hired';
+
+  // Admin Evaluation & Interview Management
+  internalNotes?: string;
+  hrNotes?: string;
+  rating?: number; // 1 to 5 stars
+  interviewDate?: string;
+  interviewTime?: string;
+  interviewer?: string;
+  interviewMode?: string;
+  interviewFeedback?: string;
+}
+
+export interface CareerPageSettings {
+  enabled: boolean;
+  contactEmail: string;
+  headline: string;
+  subheadline: string;
+  instructions?: string;
 }
