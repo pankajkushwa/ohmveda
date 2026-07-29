@@ -192,7 +192,7 @@ export function getStoredStoreItems(): StoreItem[] {
     const raw = localStorage.getItem(STORAGE_KEYS.STORE_ITEMS);
     if (raw !== null) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     }
@@ -918,16 +918,18 @@ export function getStoredStoreQas(): StoreQaItem[] {
     const raw = localStorage.getItem(STORAGE_KEYS.STORE_QAS);
     if (raw !== null) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (err) {
     console.error('Error reading store QAs:', err);
   }
-  return INITIAL_STORE_QAS;
+  const isInit = localStorage.getItem('ohmveda_store_qas_init') === 'true';
+  return isInit ? [] : INITIAL_STORE_QAS;
 }
 
 export function saveStoredStoreQas(qas: StoreQaItem[]): void {
   try {
+    localStorage.setItem('ohmveda_store_qas_init', 'true');
     localStorage.setItem(STORAGE_KEYS.STORE_QAS, JSON.stringify(qas));
     qas.forEach((qa) => {
       setDoc(doc(db, 'store_qas', qa.id), sanitizeForFirestore(qa), { merge: true }).catch((err) =>
@@ -973,10 +975,12 @@ export function answerStoreQuestion(qaId: string, answer: string, answeredBy: st
 }
 
 export function deleteStoreQuestion(qaId: string): void {
+  localStorage.setItem('ohmveda_store_qas_init', 'true');
   const current = getStoredStoreQas();
   const updated = current.filter((q) => q.id !== qaId);
-  saveStoredStoreQas(updated);
+  localStorage.setItem(STORAGE_KEYS.STORE_QAS, JSON.stringify(updated));
   deleteFirestoreDoc('store_qas', qaId);
+  window.dispatchEvent(new Event('ohmveda_store_qas_updated'));
 }
 
 // Reviews Helpers
@@ -985,16 +989,18 @@ export function getStoredStoreReviews(): StoreReviewItem[] {
     const raw = localStorage.getItem(STORAGE_KEYS.STORE_REVIEWS);
     if (raw !== null) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (err) {
     console.error('Error reading store reviews:', err);
   }
-  return INITIAL_STORE_REVIEWS;
+  const isInit = localStorage.getItem('ohmveda_store_reviews_init') === 'true';
+  return isInit ? [] : INITIAL_STORE_REVIEWS;
 }
 
 export function saveStoredStoreReviews(reviews: StoreReviewItem[]): void {
   try {
+    localStorage.setItem('ohmveda_store_reviews_init', 'true');
     localStorage.setItem(STORAGE_KEYS.STORE_REVIEWS, JSON.stringify(reviews));
     reviews.forEach((rev) => {
       setDoc(doc(db, 'store_reviews', rev.id), sanitizeForFirestore(rev), { merge: true }).catch((err) =>
@@ -1051,11 +1057,13 @@ export function addStoreReview(
 }
 
 export function deleteStoreReview(reviewId: string): void {
+  localStorage.setItem('ohmveda_store_reviews_init', 'true');
   const current = getStoredStoreReviews();
   const deleted = current.find((r) => r.id === reviewId);
   const updated = current.filter((r) => r.id !== reviewId);
-  saveStoredStoreReviews(updated);
+  localStorage.setItem(STORAGE_KEYS.STORE_REVIEWS, JSON.stringify(updated));
   deleteFirestoreDoc('store_reviews', reviewId);
+  window.dispatchEvent(new Event('ohmveda_store_reviews_updated'));
 
   if (deleted) {
     const itemReviews = updated.filter((r) => r.itemId === deleted.itemId);
@@ -1298,12 +1306,27 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   try {
     const unsub = onSnapshot(collection(db, 'store_qas'), (snapshot) => {
       if (!snapshot.empty) {
+        localStorage.setItem('ohmveda_store_qas_init', 'true');
         const qas = snapshot.docs.map((docSnap) => docSnap.data() as StoreQaItem);
         localStorage.setItem(STORAGE_KEYS.STORE_QAS, JSON.stringify(qas));
         onUpdate({ storeQas: qas });
       } else {
-        localStorage.setItem(STORAGE_KEYS.STORE_QAS, JSON.stringify(INITIAL_STORE_QAS));
-        onUpdate({ storeQas: INITIAL_STORE_QAS });
+        const isInit = localStorage.getItem('ohmveda_store_qas_init') === 'true';
+        if (!isInit) {
+          localStorage.setItem('ohmveda_store_qas_init', 'true');
+          const local = getStoredStoreQas();
+          const qasToSeed = local.length > 0 ? local : INITIAL_STORE_QAS;
+          qasToSeed.forEach((qa) => {
+            setDoc(doc(db, 'store_qas', qa.id), sanitizeForFirestore(qa), { merge: true }).catch((err) =>
+              console.error('Firestore seed QA error:', err)
+            );
+          });
+          localStorage.setItem(STORAGE_KEYS.STORE_QAS, JSON.stringify(qasToSeed));
+          onUpdate({ storeQas: qasToSeed });
+        } else {
+          localStorage.setItem(STORAGE_KEYS.STORE_QAS, JSON.stringify([]));
+          onUpdate({ storeQas: [] });
+        }
       }
     });
     unsubs.push(unsub);
@@ -1315,12 +1338,27 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   try {
     const unsub = onSnapshot(collection(db, 'store_reviews'), (snapshot) => {
       if (!snapshot.empty) {
+        localStorage.setItem('ohmveda_store_reviews_init', 'true');
         const reviews = snapshot.docs.map((docSnap) => docSnap.data() as StoreReviewItem);
         localStorage.setItem(STORAGE_KEYS.STORE_REVIEWS, JSON.stringify(reviews));
         onUpdate({ storeReviews: reviews });
       } else {
-        localStorage.setItem(STORAGE_KEYS.STORE_REVIEWS, JSON.stringify(INITIAL_STORE_REVIEWS));
-        onUpdate({ storeReviews: INITIAL_STORE_REVIEWS });
+        const isInit = localStorage.getItem('ohmveda_store_reviews_init') === 'true';
+        if (!isInit) {
+          localStorage.setItem('ohmveda_store_reviews_init', 'true');
+          const local = getStoredStoreReviews();
+          const reviewsToSeed = local.length > 0 ? local : INITIAL_STORE_REVIEWS;
+          reviewsToSeed.forEach((rev) => {
+            setDoc(doc(db, 'store_reviews', rev.id), sanitizeForFirestore(rev), { merge: true }).catch((err) =>
+              console.error('Firestore seed review error:', err)
+            );
+          });
+          localStorage.setItem(STORAGE_KEYS.STORE_REVIEWS, JSON.stringify(reviewsToSeed));
+          onUpdate({ storeReviews: reviewsToSeed });
+        } else {
+          localStorage.setItem(STORAGE_KEYS.STORE_REVIEWS, JSON.stringify([]));
+          onUpdate({ storeReviews: [] });
+        }
       }
     });
     unsubs.push(unsub);
