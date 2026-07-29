@@ -289,3 +289,12 @@ export interface CompanyContactInfo {
   addressLine1: string;
   addressLine2: string;
 }
+
+export interface SocialLink {
+  id: string;
+  platform: string;
+  url: string;
+  enabled: boolean;
+  iconName?: string;
+  isCustom?: boolean;
+}

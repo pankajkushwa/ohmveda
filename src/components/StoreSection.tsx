@@ -474,34 +474,7 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
           {(() => {
             const itemQas = storeQas.filter((q) => q.itemId === selectedComponent.id);
             const itemReviews = storeReviews.filter((r) => r.itemId === selectedComponent.id);
-            const itemDocs: TechnicalDocument[] = (selectedComponent.documents && selectedComponent.documents.length > 0)
-              ? selectedComponent.documents
-              : [
-                  {
-                    id: `doc-gen-1-${selectedComponent.id}`,
-                    title: `${selectedComponent.name} Technical Datasheet & Specification Sheet`,
-                    fileType: 'Datasheet',
-                    url: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=1200&q=80',
-                    fileSize: '1.4 MB',
-                    uploadedAt: '2026-03-01',
-                  },
-                  {
-                    id: `doc-gen-2-${selectedComponent.id}`,
-                    title: `${selectedComponent.sku} GPIO Pinout & Interfacing Schematic`,
-                    fileType: 'Schematic',
-                    url: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=1200&q=80',
-                    fileSize: '820 KB',
-                    uploadedAt: '2026-03-05',
-                  },
-                  {
-                    id: `doc-gen-3-${selectedComponent.id}`,
-                    title: `OhmVeda Integration & C++/Arduino Code Sample Guide`,
-                    fileType: 'Manual',
-                    url: '#',
-                    fileSize: '2.1 MB',
-                    uploadedAt: '2026-03-10',
-                  },
-                ];
+            const itemDocs: TechnicalDocument[] = selectedComponent.documents || [];
 
             return (
               <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-8 space-y-6">
@@ -562,68 +535,76 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {itemDocs.map((docItem) => {
-                        const isPdf = docItem.fileType === 'Datasheet' || docItem.url.toLowerCase().includes('pdf');
-                        const DocIcon = isPdf ? FileText : docItem.fileType === 'Schematic' ? FileCode : FileSpreadsheet;
+                    {itemDocs.length === 0 ? (
+                      <div className="text-center py-10 px-4 text-slate-500 text-xs bg-slate-50 rounded-2xl border border-slate-200 space-y-2">
+                        <FileText className="w-8 h-8 text-slate-300 mx-auto" />
+                        <p className="font-bold text-slate-700">No technical documents or datasheets uploaded for this component.</p>
+                        <p className="text-[11px] text-slate-400">Documentation will appear here once uploaded via the management portal.</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {itemDocs.map((docItem) => {
+                          const isPdf = docItem.fileType === 'Datasheet' || docItem.url.toLowerCase().includes('pdf');
+                          const DocIcon = isPdf ? FileText : docItem.fileType === 'Schematic' ? FileCode : FileSpreadsheet;
 
-                        return (
-                          <div
-                            key={docItem.id}
-                            className="p-4 rounded-2xl border border-slate-200 hover:border-blue-300 bg-white hover:bg-slate-50/80 transition-all flex flex-col justify-between gap-4 shadow-2xs group"
-                          >
-                            <div className="flex items-start gap-3">
-                              <div className="p-3 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                <DocIcon className="w-6 h-6" />
-                              </div>
-                              <div className="space-y-1 min-w-0">
-                                <div className="flex items-center gap-2">
-                                  <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-mono font-bold uppercase border border-slate-200">
-                                    {docItem.fileType || 'PDF'}
-                                  </span>
-                                  {docItem.fileSize && (
-                                    <span className="text-[10px] text-slate-400 font-mono">
-                                      {docItem.fileSize}
+                          return (
+                            <div
+                              key={docItem.id}
+                              className="p-4 rounded-2xl border border-slate-200 hover:border-blue-300 bg-white hover:bg-slate-50/80 transition-all flex flex-col justify-between gap-4 shadow-2xs group"
+                            >
+                              <div className="flex items-start gap-3">
+                                <div className="p-3 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 shrink-0 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                  <DocIcon className="w-6 h-6" />
+                                </div>
+                                <div className="space-y-1 min-w-0">
+                                  <div className="flex items-center gap-2">
+                                    <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[10px] font-mono font-bold uppercase border border-slate-200">
+                                      {docItem.fileType || 'PDF'}
                                     </span>
+                                    {docItem.fileSize && (
+                                      <span className="text-[10px] text-slate-400 font-mono">
+                                        {docItem.fileSize}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <h5 className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2">
+                                    {docItem.title}
+                                  </h5>
+                                  {docItem.uploadedAt && (
+                                    <p className="text-[10px] text-slate-400 font-mono">
+                                      Uploaded: {docItem.uploadedAt}
+                                    </p>
                                   )}
                                 </div>
-                                <h5 className="text-xs font-bold text-slate-900 group-hover:text-blue-600 transition-colors line-clamp-2">
-                                  {docItem.title}
-                                </h5>
-                                {docItem.uploadedAt && (
-                                  <p className="text-[10px] text-slate-400 font-mono">
-                                    Uploaded: {docItem.uploadedAt}
-                                  </p>
+                              </div>
+
+                              <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
+                                {docItem.url && docItem.url !== '#' ? (
+                                  <a
+                                    href={docItem.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex-1 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs"
+                                  >
+                                    <Download className="w-3.5 h-3.5" />
+                                    <span>Download / View Document</span>
+                                  </a>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => setViewingDocModal(docItem)}
+                                    className="flex-1 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                                  >
+                                    <Eye className="w-3.5 h-3.5 text-blue-400" />
+                                    <span>View Inline Documentation</span>
+                                  </button>
                                 )}
                               </div>
                             </div>
-
-                            <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-                              {docItem.url && docItem.url !== '#' ? (
-                                <a
-                                  href={docItem.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="flex-1 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs"
-                                >
-                                  <Download className="w-3.5 h-3.5" />
-                                  <span>Download / View Document</span>
-                                </a>
-                              ) : (
-                                <button
-                                  type="button"
-                                  onClick={() => setViewingDocModal(docItem)}
-                                  className="flex-1 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
-                                >
-                                  <Eye className="w-3.5 h-3.5 text-blue-400" />
-                                  <span>View Inline Documentation</span>
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
+                          );
+                        })}
+                      </div>
+                    )}
 
                     <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200 text-xs text-amber-900 flex items-start gap-3">
                       <HelpCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
@@ -701,7 +682,7 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
                     <form onSubmit={(e) => {
                       e.preventDefault();
                       if (!newQuestionText.trim()) return;
-                      addStoreQuestion(selectedComponent.id, newQuestionName, newQuestionEmail, newQuestionText);
+                      addStoreQuestion(selectedComponent.id, 'Customer', '', newQuestionText);
                       setNewQuestionText('');
                       setQaSubmittedToast(true);
                       setTimeout(() => setQaSubmittedToast(false), 4000);
@@ -717,29 +698,6 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
                           <span>Your question has been submitted successfully! Our engineering team will post an answer shortly.</span>
                         </div>
                       )}
-
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-600 uppercase font-mono mb-1">Your Name</label>
-                          <input
-                            type="text"
-                            value={newQuestionName}
-                            onChange={(e) => setNewQuestionName(e.target.value)}
-                            placeholder="e.g. Rahul Sharma"
-                            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-blue-500 shadow-2xs"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-[10px] font-bold text-slate-600 uppercase font-mono mb-1">Work / Personal Email</label>
-                          <input
-                            type="email"
-                            value={newQuestionEmail}
-                            onChange={(e) => setNewQuestionEmail(e.target.value)}
-                            placeholder="e.g. rahul@company.com"
-                            className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-blue-500 shadow-2xs"
-                          />
-                        </div>
-                      </div>
 
                       <div>
                         <label className="block text-[10px] font-bold text-slate-600 uppercase font-mono mb-1">Your Question *</label>
@@ -775,11 +733,11 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
                           <div key={qa.id} className="p-5 rounded-2xl bg-white border border-slate-200 space-y-3 shadow-2xs">
                             <div className="flex items-start justify-between gap-3">
                               <div className="flex items-center gap-2 text-xs">
-                                <div className="w-7 h-7 rounded-full bg-slate-100 text-slate-700 font-bold flex items-center justify-center text-xs">
-                                  {qa.userName.charAt(0).toUpperCase()}
+                                <div className="w-7 h-7 rounded-full bg-blue-100 text-blue-700 font-bold flex items-center justify-center text-xs">
+                                  {(qa.userName || 'C').charAt(0).toUpperCase()}
                                 </div>
                                 <div>
-                                  <span className="font-bold text-slate-900">{qa.userName}</span>
+                                  <span className="font-bold text-slate-900">{qa.userName || 'Customer'}</span>
                                   <span className="text-[10px] text-slate-400 font-mono ml-2">Asked on {qa.askedAt}</span>
                                 </div>
                               </div>
@@ -866,16 +824,15 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
                     {/* Write a Review Form */}
                     <form onSubmit={(e) => {
                       e.preventDefault();
-                      if (!newReviewTitle.trim() || !newReviewComment.trim()) return;
+                      if (!newReviewComment.trim()) return;
                       addStoreReview(
                         selectedComponent.id,
                         newReviewName,
                         newReviewEmail,
                         newReviewRating,
-                        newReviewTitle,
+                        'Customer Review',
                         newReviewComment
                       );
-                      setNewReviewTitle('');
                       setNewReviewComment('');
                       setReviewSubmittedToast(true);
                       setTimeout(() => setReviewSubmittedToast(false), 4000);
@@ -940,18 +897,6 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
                             className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-amber-500 shadow-2xs"
                           />
                         </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-600 uppercase font-mono mb-1">Review Headline / Title *</label>
-                        <input
-                          type="text"
-                          value={newReviewTitle}
-                          onChange={(e) => setNewReviewTitle(e.target.value)}
-                          placeholder="e.g. Outstanding Wi-Fi stability & solid build quality"
-                          required
-                          className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-xs focus:outline-none focus:border-amber-500 shadow-2xs"
-                        />
                       </div>
 
                       <div>

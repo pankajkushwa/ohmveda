@@ -147,10 +147,10 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
+    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
       
-      {/* LOGIN CARD */}
-      <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+      {/* LOGIN CARD WINDOW */}
+      <div className="max-w-md w-full bg-white border border-slate-200 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
         
         {/* LOGO & TITLE */}
         <div className="text-center space-y-3">
@@ -158,7 +158,7 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
             <OhmVedaLogo variant="dark" size="md" layout="horizontal" />
           </div>
 
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[11px] font-semibold tracking-wider uppercase">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-blue-700 text-[11px] font-semibold tracking-wider uppercase">
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Management Portal Login</span>
           </div>
@@ -166,17 +166,17 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
 
         {/* IF LOGGED IN BUT NOT AUTHORIZED */}
         {isLoggedIn && !isAuthorized && (
-          <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl space-y-3 text-xs text-amber-200">
-            <div className="flex items-center gap-2 font-bold text-amber-400">
-              <AlertCircle className="w-4 h-4 shrink-0" />
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl space-y-3 text-xs text-amber-900">
+            <div className="flex items-center gap-2 font-bold text-amber-800">
+              <AlertCircle className="w-4 h-4 shrink-0 text-amber-600" />
               <span>Unauthorized Account</span>
             </div>
             <p>
-              You are currently signed in as <strong className="text-white">{userProfile.email}</strong>. This account does not have administrator privileges.
+              You are currently signed in as <strong className="text-slate-900">{userProfile.email}</strong>. This account does not have administrator privileges.
             </p>
             <button
               onClick={onLogout}
-              className="w-full py-2 bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold rounded-lg transition-colors cursor-pointer text-xs"
+              className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg transition-colors cursor-pointer text-xs shadow-xs"
             >
               Sign Out & Switch Account
             </button>
@@ -186,14 +186,14 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
         {/* LOGIN / SIGNUP TABS */}
         {(!isLoggedIn || isAuthorized) && (
           <>
-            <div className="grid grid-cols-2 p-1 bg-slate-950 border border-slate-800 rounded-xl text-xs font-semibold">
+            <div className="grid grid-cols-2 p-1 bg-slate-100 border border-slate-200 rounded-xl text-xs font-semibold">
               <button
                 type="button"
                 onClick={() => handleModeSwitch('login')}
                 className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   mode === 'login'
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <LogIn className="w-3.5 h-3.5" />
@@ -205,8 +205,8 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
                 onClick={() => handleModeSwitch('signup')}
                 className={`py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
                   mode === 'signup'
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-blue-600 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:text-slate-900'
                 }`}
               >
                 <UserPlus className="w-3.5 h-3.5" />
@@ -216,8 +216,8 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
 
             {/* ERROR BANNER */}
             {error && (
-              <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-rose-300 text-xs flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
                 <span>{error}</span>
               </div>
             )}
@@ -228,16 +228,16 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
               {/* FULL NAME (SIGNUP ONLY) */}
               {mode === 'signup' && (
                 <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Full Name *</label>
+                  <label className="block text-xs font-medium text-slate-700 mb-1">Full Name *</label>
                   <div className="relative">
-                    <User className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                    <User className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                     <input
                       type="text"
                       required
                       placeholder="e.g. System Administrator"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      className="w-full bg-white border border-slate-300 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 shadow-2xs"
                     />
                   </div>
                 </div>
@@ -245,37 +245,37 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
 
               {/* EMAIL */}
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Email Address *</label>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Email Address *</label>
                 <div className="relative">
-                  <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                  <Mail className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                   <input
                     type="email"
                     required
                     placeholder="admin@ohmveda.com"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl pl-9 pr-3 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 shadow-2xs"
                   />
                 </div>
               </div>
 
               {/* PASSWORD */}
               <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Password *</label>
+                <label className="block text-xs font-medium text-slate-700 mb-1">Password *</label>
                 <div className="relative">
-                  <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-500" />
+                  <Lock className="w-4 h-4 absolute left-3 top-3 text-slate-400" />
                   <input
                     type={showPassword ? 'text' : 'password'}
                     required
                     placeholder="••••••••"
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-10 py-2.5 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                    className="w-full bg-white border border-slate-300 rounded-xl pl-9 pr-10 py-2.5 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 shadow-2xs"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-2.5 p-1 text-slate-500 hover:text-slate-300"
+                    className="absolute right-3 top-2.5 p-1 text-slate-400 hover:text-slate-600 cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -286,29 +286,29 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
               {mode === 'signup' && (
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Phone</label>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Phone</label>
                     <div className="relative">
-                      <Phone className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-500" />
+                      <Phone className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
                       <input
                         type="tel"
                         placeholder="+91..."
                         value={formData.phone}
                         onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-2 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white border border-slate-300 rounded-xl pl-8 pr-2 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 shadow-2xs"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-slate-300 mb-1">Organization</label>
+                    <label className="block text-xs font-medium text-slate-700 mb-1">Organization</label>
                     <div className="relative">
-                      <Building className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-500" />
+                      <Building className="w-3.5 h-3.5 absolute left-3 top-3 text-slate-400" />
                       <input
                         type="text"
                         placeholder="OhmVeda"
                         value={formData.company}
                         onChange={(e) => setFormData({ ...formData, company: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-8 pr-2 py-2 text-xs text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500"
+                        className="w-full bg-white border border-slate-300 rounded-xl pl-8 pr-2 py-2 text-xs text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-blue-600 shadow-2xs"
                       />
                     </div>
                   </div>
@@ -319,7 +319,7 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl shadow-lg shadow-blue-600/25 flex items-center justify-center gap-2 cursor-pointer transition-all text-xs"
+                className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-600/20 flex items-center justify-center gap-2 cursor-pointer transition-all text-xs"
               >
                 {loading ? (
                   <span>Authenticating...</span>
@@ -335,16 +335,16 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
 
             {/* QUICK FILL ACCELERATOR */}
             {mode === 'login' && (
-              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
-                <span className="flex items-center gap-1 text-slate-500">
-                  <KeyRound className="w-3 h-3 text-blue-400" />
+              <div className="pt-2 border-t border-slate-200 flex items-center justify-between text-[11px] text-slate-500">
+                <span className="flex items-center gap-1 text-slate-500 font-medium">
+                  <KeyRound className="w-3 h-3 text-blue-600" />
                   <span>Default Admin Credentials</span>
                 </span>
 
                 <button
                   type="button"
                   onClick={handleQuickFillDefaultAdmin}
-                  className="text-blue-400 hover:text-blue-300 font-medium underline underline-offset-2 cursor-pointer flex items-center gap-1"
+                  className="text-blue-600 hover:text-blue-800 font-bold underline underline-offset-2 cursor-pointer flex items-center gap-1"
                 >
                   <Sparkles className="w-3 h-3" />
                   <span>Quick Fill Admin</span>
@@ -357,8 +357,8 @@ export const AdminLoginView: React.FC<AdminLoginViewProps> = ({
       </div>
 
       {/* FOOTER METADATA */}
-      <div className="mt-6 text-center text-[11px] text-slate-500 space-y-1 z-10">
-        <p className="font-semibold text-slate-400">OhmVeda Industrial IoT & Embedded Systems</p>
+      <div className="mt-6 text-center text-[11px] text-slate-500 space-y-1">
+        <p className="font-semibold text-slate-600">OhmVeda Industrial IoT & Embedded Systems</p>
         <p>Protected Management Console • Restricted Access System</p>
       </div>
 

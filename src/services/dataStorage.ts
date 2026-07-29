@@ -1,4 +1,4 @@
-import { CareerPageSettings, CompanyContactInfo, JobApplication, JobRole, ProductCategory, StoreCategory, StoreItem, StoreQaItem, StoreReviewItem, TechnicalDocument, TurnkeyProduct } from '../types';
+import { CareerPageSettings, CompanyContactInfo, JobApplication, JobRole, ProductCategory, SocialLink, StoreCategory, StoreItem, StoreQaItem, StoreReviewItem, TechnicalDocument, TurnkeyProduct } from '../types';
 import { STORE_PRODUCTS } from '../data/storeProducts';
 import { INITIAL_TURNKEY_PRODUCTS } from '../data/turnkeyProducts';
 import { INITIAL_JOB_ROLES } from '../data/careersData';
@@ -734,6 +734,104 @@ export function saveStoredCompanyContact(info: CompanyContactInfo): void {
     console.error('Error saving company contact info:', err);
   }
 }
+
+// =========================================================================
+// SOCIAL MEDIA LINKS STORAGE
+// =========================================================================
+
+export const DEFAULT_SOCIAL_LINKS: SocialLink[] = [
+  {
+    id: 'linkedin',
+    platform: 'LinkedIn',
+    url: 'https://linkedin.com/company/ohmveda-technologies',
+    enabled: true,
+    iconName: 'Linkedin',
+  },
+  {
+    id: 'github',
+    platform: 'GitHub',
+    url: 'https://github.com/ohmveda-technologies',
+    enabled: true,
+    iconName: 'Github',
+  },
+  {
+    id: 'youtube',
+    platform: 'YouTube',
+    url: 'https://youtube.com/@ohmvedatechnologies',
+    enabled: true,
+    iconName: 'Youtube',
+  },
+  {
+    id: 'twitter',
+    platform: 'Twitter / X',
+    url: 'https://x.com/ohmveda_tech',
+    enabled: true,
+    iconName: 'Twitter',
+  },
+  {
+    id: 'instagram',
+    platform: 'Instagram',
+    url: 'https://instagram.com/ohmveda_technologies',
+    enabled: false,
+    iconName: 'Instagram',
+  },
+  {
+    id: 'facebook',
+    platform: 'Facebook',
+    url: 'https://facebook.com/ohmveda',
+    enabled: false,
+    iconName: 'Facebook',
+  },
+  {
+    id: 'whatsapp',
+    platform: 'WhatsApp',
+    url: 'https://wa.me/919876543210',
+    enabled: false,
+    iconName: 'MessageCircle',
+  },
+  {
+    id: 'discord',
+    platform: 'Discord',
+    url: 'https://discord.gg/ohmveda',
+    enabled: false,
+    iconName: 'MessageSquare',
+  },
+  {
+    id: 'telegram',
+    platform: 'Telegram',
+    url: 'https://t.me/ohmvedatech',
+    enabled: false,
+    iconName: 'Send',
+  },
+];
+
+export function getStoredSocialLinks(): SocialLink[] {
+  try {
+    const raw = localStorage.getItem('ohmveda_social_links_v1');
+    if (raw !== null) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.error('Error reading social links:', err);
+  }
+  return DEFAULT_SOCIAL_LINKS;
+}
+
+export function saveStoredSocialLinks(links: SocialLink[]): void {
+  try {
+    localStorage.setItem('ohmveda_social_links_v1', JSON.stringify(links));
+    setDoc(doc(db, 'app_settings', 'social_links'), { links }, { merge: true }).catch((err) =>
+      console.error('Firestore save social links error:', err)
+    );
+    window.dispatchEvent(new Event('ohmveda_social_links_updated'));
+  } catch (err) {
+    console.error('Error saving social links:', err);
+  }
+}
+
 
 // =========================================================================
 // STORE Q&A AND CUSTOMER REVIEWS STORAGE
