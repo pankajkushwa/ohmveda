@@ -26,6 +26,12 @@ export const ProductsManager: React.FC<ProductsManagerProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
 
+  const cleanCategoryLabel = (label: string, fallbackId?: string) => {
+    if (!label) return fallbackId || '';
+    let cleaned = label.replace(/\s*\([^)]*\)/gi, '').trim();
+    return cleaned || label;
+  };
+
   // Modal State
   const [productModalOpen, setProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<TurnkeyProduct | null>(null);
@@ -360,7 +366,7 @@ export const ProductsManager: React.FC<ProductsManagerProps> = ({
                   >
                     {productCategories.map((c) => (
                       <option key={c.id} value={c.id}>
-                        {c.label}
+                        {cleanCategoryLabel(c.label, c.id)}
                       </option>
                     ))}
                   </select>

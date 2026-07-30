@@ -1,4 +1,4 @@
-import { CareerPageSettings, CompanyContactInfo, JobApplication, JobRole, ProductCategory, SocialLink, StoreCategory, StoreItem, StoreQaItem, StoreReviewItem, TechnicalDocument, TurnkeyProduct } from '../types';
+import { CareerPageSettings, CompanyContactInfo, JobApplication, JobRole, ProductCategory, SocialLink, StoreCategory, StoreItem, StoreQaItem, StoreReviewItem, TechnicalDocument, TurnkeyProduct, UserAddress, UserOrder } from '../types';
 import { STORE_PRODUCTS } from '../data/storeProducts';
 import { INITIAL_TURNKEY_PRODUCTS } from '../data/turnkeyProducts';
 import { INITIAL_JOB_ROLES } from '../data/careersData';
@@ -24,6 +24,8 @@ const STORAGE_KEYS = {
   COMPANY_CONTACT: 'ohmveda_company_contact_v1',
   STORE_QAS: 'ohmveda_store_qas_v1',
   STORE_REVIEWS: 'ohmveda_store_reviews_v1',
+  USER_ADDRESSES: 'ohmveda_user_addresses_v1',
+  USER_ORDERS: 'ohmveda_user_orders_v1',
 };
 
 export const DEFAULT_AUTHORIZED_ADMIN_EMAILS: string[] = [
@@ -301,7 +303,28 @@ export interface StoredUserAccount {
   password: string;
   phone?: string;
   company?: string;
+  gstin?: string;
   createdAt: string;
+}
+
+export function saveRegisteredUserProfile(profile: UserProfile): void {
+  const cleanEmail = profile.email.trim().toLowerCase();
+  const accounts = getRegisteredAccounts();
+  const idx = accounts.findIndex((a) => a.email.toLowerCase() === cleanEmail);
+  if (idx !== -1) {
+    accounts[idx] = {
+      ...accounts[idx],
+      name: profile.name,
+      phone: profile.phone,
+      company: profile.company,
+      gstin: profile.gstin,
+    };
+    saveRegisteredAccounts(accounts);
+  }
+  const docId = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+  setDoc(doc(db, 'users', docId), sanitizeForFirestore(profile), { merge: true }).catch((err) =>
+    console.error('Firestore save profile error:', err)
+  );
 }
 
 export function getRegisteredAccounts(): StoredUserAccount[] {
@@ -1366,7 +1389,120 @@ export function subscribeToFirestoreData(onUpdate: (data: {
     console.error('Store reviews subscription error:', e);
   }
 
+  // 13. User Orders Listener
+  try {
+    const unsub = onSnapshot(collection(db, 'user_orders'), (snapshot) => {
+      if (!snapshot.empty) {
+        const orders = snapshot.docs.map((docSnap) => docSnap.data() as UserOrder);
+        localStorage.setItem(STORAGE_KEYS.USER_ORDERS, JSON.stringify(orders));
+        onUpdate({ userOrders: orders });
+      }
+    });
+    unsubs.push(unsub);
+  } catch (e) {
+    console.error('User orders subscription error:', e);
+  }
+
   return () => {
     unsubs.forEach((unsub) => unsub());
   };
+}
+
+// =========================================================================
+// USER ADDRESSES & ORDERS STORAGE
+// =========================================================================
+
+export function getStoredUserAddresses(userId: string): UserAddress[] {
+  if (!userId) return [];
+  try {
+    const raw = localStorage.getItem(`${STORAGE_KEYS.USER_ADDRESSES}_${userId}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (err) {
+    console.error('Error loading stored user addresses:', err);
+  }
+  return [];
+}
+
+export function saveStoredUserAddress(address: UserAddress): UserAddress[] {
+  if (!address.userId) return [];
+  const existing = getStoredUserAddresses(address.userId);
+  let updated: UserAddress[];
+  const isEdit = existing.some((a) => a.id === address.id);
+  
+  if (isEdit) {
+    updated = existing.map((a) => (a.id === address.id ? address : a));
+  } else {
+    if (address.isDefault || existing.length === 0) {
+      existing.forEach((a) => (a.isDefault = false));
+      address.isDefault = true;
+    }
+    updated = [address, ...existing];
+  }
+
+  try {
+    localStorage.setItem(`${STORAGE_KEYS.USER_ADDRESSES}_${address.userId}`, JSON.stringify(updated));
+    setDoc(doc(db, 'user_addresses', address.id), sanitizeForFirestore(address), { merge: true }).catch((err) =>
+      console.error('Firestore save address error:', err)
+    );
+  } catch (err) {
+    console.error('Error saving user address:', err);
+  }
+  return updated;
+}
+
+export function deleteStoredUserAddress(userId: string, addressId: string): UserAddress[] {
+  const current = getStoredUserAddresses(userId);
+  const updated = current.filter((a) => a.id !== addressId);
+  if (updated.length > 0 && !updated.some((a) => a.isDefault)) {
+    updated[0].isDefault = true;
+  }
+  try {
+    localStorage.setItem(`${STORAGE_KEYS.USER_ADDRESSES}_${userId}`, JSON.stringify(updated));
+    deleteFirestoreDoc('user_addresses', addressId);
+  } catch (err) {
+    console.error('Error deleting user address:', err);
+  }
+  return updated;
+}
+
+// User Orders
+export function getStoredUserOrders(userId?: string): UserOrder[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.USER_ORDERS);
+    if (raw) {
+      const parsed: UserOrder[] = JSON.parse(raw);
+      if (Array.isArray(parsed)) {
+        if (userId) {
+          return parsed.filter((o) => o.userId === userId);
+        }
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.error('Error loading stored user orders:', err);
+  }
+  return [];
+}
+
+export function saveStoredUserOrder(order: UserOrder): UserOrder {
+  const current = getStoredUserOrders();
+  const updated = [order, ...current.filter((o) => o.id !== order.id)];
+  try {
+    localStorage.setItem(STORAGE_KEYS.USER_ORDERS, JSON.stringify(updated));
+    setDoc(doc(db, 'user_orders', order.id), sanitizeForFirestore(order), { merge: true }).catch((err) =>
+      console.error('Firestore save order error:', err)
+    );
+    addAdminLog({
+      action: 'ADD',
+      target: 'STORE',
+      title: `New Order Placed (#${order.id})`,
+      details: `${order.userName} placed order for ${order.items.length} item(s) totaling ₹${order.totalAmount.toLocaleString()} via ${order.paymentMethod}.`,
+    });
+  } catch (err) {
+    console.error('Error saving order:', err);
+  }
+  return order;
 }

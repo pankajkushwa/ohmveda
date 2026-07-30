@@ -28,6 +28,12 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
   const [newProdCatLabel, setNewProdCatLabel] = useState<string>('');
   const [newProdCatDesc, setNewProdCatDesc] = useState<string>('');
 
+  const cleanCategoryLabel = (label: string, fallbackId?: string) => {
+    if (!label) return fallbackId || '';
+    let cleaned = label.replace(/\s*\([^)]*\)/gi, '').trim();
+    return cleaned || label;
+  };
+
   const [newStoreCatLabel, setNewStoreCatLabel] = useState<string>('');
   const [newStoreCatIcon, setNewStoreCatIcon] = useState<string>('Cpu');
   const [newStoreCatDesc, setNewStoreCatDesc] = useState<string>('');
@@ -200,7 +206,7 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
                 className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3 group"
               >
                 <div>
-                  <p className="text-xs font-bold text-slate-900">{c.label}</p>
+                  <p className="text-xs font-bold text-slate-900">{cleanCategoryLabel(c.label)}</p>
                   <p className="text-[10px] text-slate-500">{c.description}</p>
                   <p className="text-[9px] text-slate-400 font-mono mt-0.5">ID: {c.id}</p>
                 </div>
@@ -261,7 +267,7 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
                 className="p-3 bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between gap-3 group"
               >
                 <div>
-                  <p className="text-xs font-bold text-slate-900">{c.label}</p>
+                  <p className="text-xs font-bold text-slate-900">{cleanCategoryLabel(c.label)}</p>
                   <p className="text-[10px] text-slate-500">{c.description}</p>
                   <p className="text-[9px] text-slate-400 font-mono mt-0.5">ID: {c.id}</p>
                 </div>

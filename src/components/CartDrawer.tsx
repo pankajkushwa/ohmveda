@@ -160,7 +160,7 @@ export const CartDrawer: React.FC<CartDrawerProps> = ({
               }}
               className="w-full py-3.5 rounded-lg text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 transition-all shadow-md flex items-center justify-center gap-2"
             >
-              <span>Proceed to Order Inquiry / Checkout</span>
+              <span>Proceed to Checkout</span>
               <ArrowRight className="w-4 h-4" />
             </button>
 

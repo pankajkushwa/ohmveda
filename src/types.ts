@@ -76,6 +76,71 @@ export interface UserProfile {
   email: string;
   phone?: string;
   company?: string;
+  gstin?: string;
+}
+
+export interface SeparateBillingAddress {
+  fullName: string;
+  phone: string;
+  companyName?: string;
+  gstin?: string;
+  houseBuilding: string;
+  streetArea: string;
+  landmark?: string;
+  city: string;
+  state: string;
+  pincode: string;
+}
+
+export interface UserAddress {
+  id: string;
+  userId: string;
+  fullName: string;
+  phone: string;
+  companyName?: string;
+  gstin?: string;
+  pincode: string;
+  houseBuilding: string;
+  streetArea: string;
+  landmark?: string;
+  city: string;
+  state: string;
+  addressType: 'Home' | 'Work' | 'Factory / R&D Lab' | 'Other';
+  isDefault?: boolean;
+  isBillingSame?: boolean;
+  billingAddress?: SeparateBillingAddress;
+}
+
+export interface OrderItem {
+  productId: string;
+  productName: string;
+  sku: string;
+  image: string;
+  price: number;
+  quantity: number;
+}
+
+export interface UserOrder {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  userPhone: string;
+  items: OrderItem[];
+  subtotal: number;
+  shippingFee: number;
+  gstAmount: number;
+  totalAmount: number;
+  shippingAddress: UserAddress;
+  paymentMethod: 'UPI' | 'CARD' | 'NET_BANKING' | 'COD' | 'GST_PO';
+  paymentStatus: 'PAID' | 'PENDING' | 'COD_CONFIRMED';
+  orderStatus: 'Processing' | 'Shipped' | 'Out for Delivery' | 'Delivered' | 'Cancelled';
+  trackingNumber?: string;
+  courierPartner?: string;
+  courierTrackingUrl?: string;
+  adminDispatchNotes?: string;
+  createdAt: string;
+  estimatedDelivery: string;
 }
 
 export interface ServiceCategory {

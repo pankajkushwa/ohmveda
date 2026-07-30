@@ -14,8 +14,11 @@ const AdminDashboard = React.lazy(() =>
 import { ProjectModal } from './components/ProjectModal';
 import { AuthModal } from './components/AuthModal';
 import { CartDrawer } from './components/CartDrawer';
+import { CheckoutModal } from './components/CheckoutModal';
+import { OrdersAndAddressesModal } from './components/OrdersAndAddressesModal';
 import { Footer } from './components/Footer';
 import { CareersSection } from './components/CareersSection';
+import { AccountPage } from './components/AccountPage';
 import { CartItem, JobRole, ProductCategory, StoreCategory, StoreItem, TurnkeyProduct, UserProfile } from './types';
 import { ShoppingBag, ArrowRight, Zap, Wifi, ShieldCheck } from 'lucide-react';
 import { 
@@ -36,7 +39,7 @@ import {
 
 export default function App() {
   // Standalone route detection: Admin portal opens independently via /#admin, /admin, or ?admin=true
-  const [currentPage, setCurrentPage] = useState<'home' | 'products' | 'store' | 'careers' | 'admin'>(() => {
+  const [currentPage, setCurrentPage] = useState<'home' | 'products' | 'store' | 'careers' | 'account' | 'admin'>(() => {
     if (
       typeof window !== 'undefined' &&
       (window.location.hash === '#admin' ||
@@ -156,6 +159,9 @@ export default function App() {
     return null;
   });
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
+  const [checkoutPendingIntent, setCheckoutPendingIntent] = useState(false);
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
 
   const handleLoginSuccess = (profile: UserProfile) => {
     setUserProfile(profile);
@@ -163,6 +169,11 @@ export default function App() {
       localStorage.setItem('ohmveda_user_profile_v1', JSON.stringify(profile));
     } catch (err) {
       console.error('Error saving user profile:', err);
+    }
+
+    if (checkoutPendingIntent) {
+      setCheckoutPendingIntent(false);
+      setCheckoutModalOpen(true);
     }
   };
 
@@ -205,13 +216,13 @@ export default function App() {
   }, [currentPage]);
 
   const handleNavigate = (
-    page: 'home' | 'products' | 'store' | 'careers' | 'admin',
+    page: 'home' | 'products' | 'store' | 'careers' | 'account' | 'admin',
     sectionId: string = 'hero',
     extra?: { category?: string; productId?: string; componentId?: string; jobId?: string }
   ) => {
     setCurrentPage(page);
 
-    if (page === 'admin' || page === 'careers') {
+    if (page === 'admin' || page === 'careers' || page === 'account') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else if (page === 'store') {
       if (extra?.category) {
@@ -333,9 +344,13 @@ export default function App() {
   };
 
   const handleCheckoutFromCart = () => {
-    setInquiryCategory('electronics_embedded');
-    setInquiryModules(cart.map((c) => c.product.sku));
-    setInquiryModalOpen(true);
+    setCartOpen(false);
+    if (!userProfile) {
+      setCheckoutPendingIntent(true);
+      setAuthModalOpen(true);
+    } else {
+      setCheckoutModalOpen(true);
+    }
   };
 
   return (
@@ -353,6 +368,7 @@ export default function App() {
           onOpenCart={() => setCartOpen(true)}
           onOpenAuth={() => setAuthModalOpen(true)}
           onLogout={handleLogout}
+          onOpenAccountModal={() => handleNavigate('account')}
           products={products}
           productCategories={productCategories}
         />
@@ -398,6 +414,19 @@ export default function App() {
             jobRoles={jobRoles}
             onBackToHome={() => handleNavigate('home', 'hero')}
             onOpenInquiry={handleOpenInquiry}
+          />
+        )}
+
+        {/* VIEW 1.5: DEDICATED CUSTOMER ACCOUNT & ORDERS PAGE */}
+        {currentPage === 'account' && (
+          <AccountPage
+            userProfile={userProfile}
+            onBackToHome={() => handleNavigate('home', 'hero')}
+            onOpenAuth={() => setAuthModalOpen(true)}
+            onLogout={handleLogout}
+            onProfileUpdated={(updated) => handleLoginSuccess(updated)}
+            onAddToCart={handleAddToCart}
+            onNavigateToStore={() => handleNavigate('store')}
           />
         )}
 
@@ -450,7 +479,7 @@ export default function App() {
                       Need Hardware Components & Dev Boards?
                     </h2>
                     <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
-                      Browse our dedicated store page featuring microcontrollers (ESP32-S3, STM32, Raspberry Pi Pico W), sensors, LoRa/BLE wireless radios, motor drivers, and prototyping parts with instant dispatch.
+                      Browse our dedicated store page featuring sensors, LoRa/BLE wireless radios, motor drivers, and prototyping parts with instant dispatch.
                     </p>
                   </div>
 
@@ -501,9 +530,36 @@ export default function App() {
       {/* Authentication Modal (Login / Signup) */}
       <AuthModal
         isOpen={authModalOpen}
-        onClose={() => setAuthModalOpen(false)}
+        onClose={() => {
+          setAuthModalOpen(false);
+          setCheckoutPendingIntent(false);
+        }}
         onLoginSuccess={handleLoginSuccess}
+        customMessage={checkoutPendingIntent ? 'Please log in or create an account to proceed with your order checkout.' : undefined}
       />
+
+      {/* E-Commerce Multi-Step Checkout Modal (Address Selection & Order Payment) */}
+      {userProfile && (
+        <CheckoutModal
+          isOpen={checkoutModalOpen}
+          onClose={() => setCheckoutModalOpen(false)}
+          cart={cart}
+          userProfile={userProfile}
+          onUpdateQuantity={handleUpdateQuantity}
+          onRemoveItem={handleRemoveCartItem}
+          onClearCart={handleClearCart}
+          onOrderPlaced={handleOrderPlaced}
+        />
+      )}
+
+      {/* Account Orders & Saved Addresses Modal */}
+      {userProfile && (
+        <OrdersAndAddressesModal
+          isOpen={accountModalOpen}
+          onClose={() => setAccountModalOpen(false)}
+          userProfile={userProfile}
+        />
+      )}
 
       {/* Component Shopping Basket Drawer */}
       <CartDrawer

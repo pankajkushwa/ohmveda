@@ -305,10 +305,17 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
     onUpdateStoreItems(updated);
   };
 
+  // Helper to clean category label (removes brackets like "capacitor (capacitor)" -> "capacitor")
+  const cleanCategoryLabel = (label: string, fallbackId?: string) => {
+    if (!label) return fallbackId || '';
+    let cleaned = label.replace(/\s*\([^)]*\)/gi, '').trim();
+    return cleaned || label;
+  };
+
   // Helper to find category label
   const getCategoryLabel = (catId: string) => {
     const found = storeCategories.find((c) => c.id === catId);
-    return found ? found.label : catId;
+    return found ? cleanCategoryLabel(found.label, catId) : cleanCategoryLabel(catId);
   };
 
   return (
@@ -406,7 +413,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                 <option value="all">All Component Categories</option>
                 {storeCategories.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.label}
+                    {cleanCategoryLabel(c.label, c.id)}
                   </option>
                 ))}
               </select>
@@ -780,7 +787,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                         <option value="">-- Select Category --</option>
                         {storeCategories.map((c) => (
                           <option key={c.id} value={c.id}>
-                            {c.label}
+                            {cleanCategoryLabel(c.label, c.id)}
                           </option>
                         ))}
                       </select>
@@ -987,7 +994,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                       <input
                         type="text"
-                        placeholder="Doc Title (e.g. Datasheet PDF)"
+                        placeholder="Doc Title"
                         value={docTitleInput}
                         onChange={(e) => setDocTitleInput(e.target.value)}
                         className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-blue-500"
@@ -1005,7 +1012,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                       </select>
                       <input
                         type="text"
-                        placeholder="File Size (e.g. 1.5 MB)"
+                        placeholder="File Size"
                         value={docSizeInput}
                         onChange={(e) => setDocSizeInput(e.target.value)}
                         className="bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-blue-500 font-mono"

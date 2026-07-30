@@ -9,6 +9,7 @@ interface AuthModalProps {
   onClose: () => void;
   onLoginSuccess: (user: UserProfile) => void;
   initialMode?: 'login' | 'signup';
+  customMessage?: string;
 }
 
 export const AuthModal: React.FC<AuthModalProps> = ({
@@ -16,6 +17,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   onClose,
   onLoginSuccess,
   initialMode = 'login',
+  customMessage,
 }) => {
   const [mode, setMode] = useState<'login' | 'signup'>(initialMode);
   const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -185,6 +187,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             <span>Sign Up</span>
           </button>
         </div>
+
+        {customMessage && (
+          <div className="p-3 mb-4 bg-blue-50 border border-blue-200 rounded-xl text-blue-800 text-xs font-semibold flex items-center gap-2">
+            <Zap className="w-4 h-4 text-blue-600 shrink-0" />
+            <span>{customMessage}</span>
+          </div>
+        )}
 
         {error && (
           <div className="p-3 mb-4 text-xs font-semibold text-rose-700 bg-rose-50 border border-rose-200 rounded-lg">
