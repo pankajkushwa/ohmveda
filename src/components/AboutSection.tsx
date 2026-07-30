@@ -49,7 +49,7 @@ export const AboutSection: React.FC<AboutSectionProps> = () => {
           className="text-center max-w-3xl mx-auto space-y-3"
         >
           <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-            About OhmVeda Technologies
+            About Us
           </h2>
           <p className="text-slate-600 text-base leading-relaxed">
             {COMPANY_INFO.positioningTitle}
@@ -63,14 +63,22 @@ export const AboutSection: React.FC<AboutSectionProps> = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-10 shadow-xs space-y-6"
+            className="bg-white rounded-2xl border border-slate-200 p-8 sm:p-10 shadow-xs space-y-5"
           >
-            <p className="text-sm text-slate-700 leading-relaxed font-normal">
-              {COMPANY_INFO.aboutUsPositioning}
+            <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-normal">
+              OhmVeda Technologies is a technology and engineering company focused on delivering innovative solutions across embedded systems, electronics hardware, PCB design, IoT, software development, and IT services.
             </p>
 
-            <p className="text-sm text-slate-700 leading-relaxed font-normal">
-              {COMPANY_INFO.aboutUsMission}
+            <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-normal">
+              We specialize in transforming ideas into reliable, scalable, and production-ready solutions through our expertise in embedded firmware, hardware development, custom software, web and mobile applications, and IoT technologies.
+            </p>
+
+            <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-normal">
+              With a multidisciplinary team of engineers and developers, we work closely with our clients to understand their requirements, solve complex technical challenges, and develop customized solutions that create real-world value.
+            </p>
+
+            <p className="text-sm sm:text-base text-slate-700 leading-relaxed font-normal">
+              At OhmVeda Technologies, we believe in innovation, quality, and engineering excellence, helping businesses and innovators turn their ideas into successful technology solutions.
             </p>
           </motion.div>
         </div>

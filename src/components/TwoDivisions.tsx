@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'motion/react';
 import { Cpu, Code2, Check, ArrowRight, ShieldCheck, Zap, Layers, ChevronRight, Info, Search } from 'lucide-react';
 import { ELECTRONICS_DIVISION_ITEMS, SOFTWARE_DIVISION_ITEMS } from '../data/companyData';
 import { DivisionItem } from '../types';
@@ -30,7 +31,13 @@ export const TwoDivisions: React.FC<TwoDivisionsProps> = ({ onOpenInquiry }) => 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Title Heading */}
-        <div className="text-center max-w-3xl mx-auto space-y-4">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="text-center max-w-3xl mx-auto space-y-4"
+        >
           <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded bg-blue-50 border border-blue-100 text-[11px] font-bold uppercase tracking-[0.18em] text-blue-700">
             <Layers className="w-3.5 h-3.5 text-blue-600" />
             <span>Complete Engineering Spectrum</span>
@@ -41,10 +48,16 @@ export const TwoDivisions: React.FC<TwoDivisionsProps> = ({ onOpenInquiry }) => 
           <p className="text-slate-600 text-base leading-relaxed">
             Eliminate communication gaps between separate electronics design houses and software agencies. OhmVeda Technologies houses both divisions under one unified engineering framework.
           </p>
-        </div>
+        </motion.div>
 
         {/* Quick Search */}
-        <div className="mt-8 max-w-md mx-auto">
+        <motion.div 
+          initial={{ opacity: 0, y: 15 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="mt-8 max-w-md mx-auto"
+        >
           <div className="relative">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
@@ -63,13 +76,19 @@ export const TwoDivisions: React.FC<TwoDivisionsProps> = ({ onOpenInquiry }) => 
               </button>
             )}
           </div>
-        </div>
+        </motion.div>
 
         {/* Two Major Divisions Grid */}
         <div className="mt-12 grid grid-cols-1 lg:grid-cols-2 gap-8">
           
           {/* DIVISION 1: ELECTRONICS & EMBEDDED ENGINEERING */}
-          <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 sm:p-8 flex flex-col justify-between shadow-xs relative overflow-hidden">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.15 }}
+            className="rounded-2xl bg-slate-50 border border-slate-200 p-6 sm:p-8 flex flex-col justify-between shadow-xs relative overflow-hidden"
+          >
             <div>
               {/* Division Header matching Design HTML */}
               <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-200">
@@ -122,10 +141,16 @@ export const TwoDivisions: React.FC<TwoDivisionsProps> = ({ onOpenInquiry }) => 
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
-          </div>
+          </motion.div>
 
           {/* DIVISION 2: SOFTWARE & IT SOLUTIONS */}
-          <div className="rounded-2xl bg-white border border-slate-200 p-6 sm:p-8 flex flex-col justify-between shadow-xs relative overflow-hidden">
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="rounded-2xl bg-white border border-slate-200 p-6 sm:p-8 flex flex-col justify-between shadow-xs relative overflow-hidden"
+          >
             <div>
               {/* Division Header matching Design HTML */}
               <div className="flex items-center gap-2 mb-6 pb-4 border-b border-slate-200">
@@ -178,7 +203,7 @@ export const TwoDivisions: React.FC<TwoDivisionsProps> = ({ onOpenInquiry }) => 
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
-          </div>
+          </motion.div>
 
         </div>
 

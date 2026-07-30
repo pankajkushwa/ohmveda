@@ -172,7 +172,7 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
             <input
               type="text"
               required
-              placeholder="Category Name (e.g. Smart Sensor Nodes)"
+              placeholder="Category Name"
               value={newProdCatLabel}
               onChange={(e) => setNewProdCatLabel(e.target.value)}
               className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500"
@@ -233,7 +233,7 @@ export const CategoriesManager: React.FC<CategoriesManagerProps> = ({
             <input
               type="text"
               required
-              placeholder="Category Name (e.g. Resistors)"
+              placeholder="Category Name"
               value={newStoreCatLabel}
               onChange={(e) => setNewStoreCatLabel(e.target.value)}
               className="w-full bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500"

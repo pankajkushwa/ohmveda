@@ -247,14 +247,20 @@ export default function App() {
       }
     } else if (page === 'home') {
       setActiveSection(sectionId);
-      setTimeout(() => {
-        const elem = document.getElementById(sectionId);
-        if (elem) {
-          elem.scrollIntoView({ behavior: 'smooth' });
-        } else {
-          window.scrollTo({ top: 0, behavior: 'smooth' });
-        }
-      }, 50);
+      if (!sectionId || sectionId === 'hero') {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else {
+        setTimeout(() => {
+          const elem = document.getElementById(sectionId);
+          if (elem) {
+            const yOffset = -80; // height of sticky header
+            const y = elem.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({ top: y, behavior: 'smooth' });
+          } else {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }, 50);
+      }
     }
   };
 
@@ -458,15 +464,6 @@ export default function App() {
                       <ShoppingBag className="w-4 h-4" />
                       <span>Open Electronics Store Page</span>
                       <ArrowRight className="w-4 h-4" />
-                    </motion.button>
-                    
-                    <motion.button
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
-                      onClick={() => handleNavigate('store', 'store', { category: 'microcontrollers' })}
-                      className="px-5 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white text-xs font-bold transition-colors text-center cursor-pointer"
-                    >
-                      Browse Microcontrollers & Dev Boards
                     </motion.button>
                   </div>
                 </div>

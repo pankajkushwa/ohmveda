@@ -296,20 +296,20 @@ export const BrandingManager: React.FC<BrandingManagerProps> = ({ showToast }) =
               <span>Live Header Preview</span>
             </h2>
 
-            <div className="flex-1 bg-slate-900 rounded-xl p-6 border border-slate-800 flex flex-col items-center justify-center min-h-[220px]">
+            <div className="flex-1 bg-white rounded-xl p-6 border border-slate-200 flex flex-col items-center justify-center min-h-[220px]">
               <div className="text-[10px] text-slate-500 mb-4 uppercase tracking-widest font-mono">Header Navbar Mockup</div>
-              <div className="bg-slate-950 px-6 py-3 rounded-2xl border border-slate-800 shadow-xl flex items-center justify-between w-full max-w-sm">
-                <OhmVedaLogo />
+              <div className="bg-white px-6 py-3 rounded-2xl border border-slate-200 shadow-md flex items-center justify-between w-full max-w-sm">
+                <OhmVedaLogo variant="light" />
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                  <span className="text-[10px] text-slate-400 font-bold">Online</span>
+                  <span className="text-[10px] text-slate-600 font-bold">Online</span>
                 </div>
               </div>
-              <div className="text-xs text-slate-400 mt-4 text-center">
+              <div className="text-xs text-slate-500 mt-4 text-center">
                 {currentSavedLogo ? (
-                  <span className="text-emerald-400 font-semibold">Custom brand logo active across website header & footer.</span>
+                  <span className="text-emerald-600 font-semibold">Custom brand logo active across website header & footer.</span>
                 ) : (
-                  <span className="text-slate-400">Using default OhmVeda brand vector logo.</span>
+                  <span className="text-slate-500">Using default OhmVeda brand vector logo.</span>
                 )}
               </div>
             </div>
@@ -711,30 +711,7 @@ export const BrandingManager: React.FC<BrandingManagerProps> = ({ showToast }) =
 
                 <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex flex-col gap-3">
                   <div className="text-[11px] text-slate-400 flex items-center justify-between font-mono">
-                    <span>© {new Date().getFullYear()} OhmVeda</span>
-                    <span className="text-slate-500 text-[10px]">Engineering Hardware. Building Software.</span>
-                  </div>
-
-                  {/* Social Badges Preview */}
-                  <div className="pt-2 border-t border-slate-800 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase font-mono">Social Links:</span>
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      {socialLinks.filter((s) => s.enabled && s.url.trim()).length === 0 ? (
-                        <span className="text-[10px] text-amber-400 italic">No social media links active.</span>
-                      ) : (
-                        socialLinks
-                          .filter((s) => s.enabled && s.url.trim())
-                          .map((s) => (
-                            <span
-                              key={`prev-${s.id}`}
-                              className="p-1.5 rounded-lg bg-slate-800 text-blue-400 border border-slate-700 flex items-center justify-center hover:bg-blue-600 hover:text-white transition-colors"
-                              title={`${s.platform}: ${s.url}`}
-                            >
-                              {renderSocialIcon(s.iconName, s.platform)}
-                            </span>
-                          ))
-                      )}
-                    </div>
+                    <span>© {new Date().getFullYear()} OhmVeda Technologies. All rights reserved.</span>
                   </div>
                 </div>
 

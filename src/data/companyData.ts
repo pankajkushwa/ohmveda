@@ -14,9 +14,9 @@ export const COMPANY_INFO = {
   heroSecondary:
     'From a single PCB to a complete connected product ecosystem, we help businesses transform ideas into reliable, scalable, and production-ready technology solutions.',
   aboutUsPositioning:
-    'OhmVeda Technologies is a multidisciplinary technology company bringing together expertise in electronics engineering and software development. Our team works across embedded systems, PCB design, firmware, IoT, automation, web development, frontend and backend engineering, Android applications, cloud platforms, and custom software solutions.',
+    'OhmVeda Technologies is a technology and engineering company focused on delivering innovative solutions across embedded systems, electronics hardware, PCB design, IoT, software development, and IT services.',
   aboutUsMission:
-    'By combining hardware and software expertise under one roof, we help startups, businesses, and enterprises develop complete technology solutions—from initial concept and R&D to product development, deployment, and long-term support.',
+    'We specialize in transforming ideas into reliable, scalable, and production-ready solutions through our expertise in embedded firmware, hardware development, custom software, web and mobile applications, and IoT technologies.',
   goalStatement: 'To turn ideas into innovative, reliable, and scalable technology products.',
   contactEmail: 'ohmvedatechnologies@gmail.com',
 };

@@ -34,7 +34,7 @@ export const ServiceCategories: React.FC<ServiceCategoriesProps> = ({ onOpenInqu
           className="text-center max-w-3xl mx-auto space-y-3"
         >
           <h2 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight">
-            Four Pillars of Technology Excellence
+            Our Services
           </h2>
           <p className="text-slate-600 text-base leading-relaxed">
             Organized into four specialized disciplines to cater to both standalone digital applications and full hardware-embedded IoT solutions.
@@ -115,7 +115,6 @@ export const ServiceCategories: React.FC<ServiceCategoriesProps> = ({ onOpenInqu
                     {selectedCategory.code}
                   </span>
                   <div>
-                    <span className="text-xs font-bold font-mono text-slate-500 uppercase tracking-widest block">Main Category</span>
                     <h3 className="text-2xl font-bold text-slate-900">{selectedCategory.title}</h3>
                   </div>
                 </div>

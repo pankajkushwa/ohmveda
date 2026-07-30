@@ -327,13 +327,6 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
 
         <div className="flex items-center gap-2">
           <button
-            onClick={onNavigateToStore}
-            className="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 flex items-center gap-1.5 transition-colors cursor-pointer"
-          >
-            <ExternalLink className="w-3.5 h-3.5" />
-            <span>Visit Electronics Store</span>
-          </button>
-          <button
             onClick={handleOpenAddStoreItem}
             className="px-4 py-2 rounded-xl text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
           >
@@ -769,7 +762,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                     <input
                       type="text"
                       required
-                      placeholder="e.g. 10k Ohm Metal Film Resistor 1/4W"
+                      placeholder=""
                       value={editingStoreItem.name}
                       onChange={(e) => setEditingStoreItem({ ...editingStoreItem, name: e.target.value })}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-medium"
@@ -787,7 +780,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                         <option value="">-- Select Category --</option>
                         {storeCategories.map((c) => (
                           <option key={c.id} value={c.id}>
-                            {c.label} ({c.id})
+                            {c.label}
                           </option>
                         ))}
                       </select>
@@ -795,7 +788,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                       <input
                         type="text"
                         required
-                        placeholder="e.g. Microcontrollers, Resistors, Sensors"
+                        placeholder=""
                         value={editingStoreItem.category}
                         onChange={(e) => setEditingStoreItem({ ...editingStoreItem, category: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-medium"
@@ -813,7 +806,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                         type="number"
                         required
                         min={0}
-                        placeholder="e.g. 100"
+                        placeholder=""
                         value={basePriceInput}
                         onChange={(e) => setBasePriceInput(e.target.value === '' ? '' : Math.max(0, Number(e.target.value)))}
                         className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-mono font-medium"
@@ -826,7 +819,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                         type="number"
                         min={0}
                         max={99}
-                        placeholder="e.g. 10 (or blank)"
+                        placeholder=""
                         value={discountPercentInput}
                         onChange={(e) => setDiscountPercentInput(e.target.value === '' ? '' : Math.min(99, Math.max(0, Number(e.target.value))))}
                         className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-mono font-medium"
@@ -884,7 +877,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                       type="text"
                       value={editingStoreItem.sku || ''}
                       onChange={(e) => setEditingStoreItem({ ...editingStoreItem, sku: e.target.value })}
-                      placeholder="e.g. OV-RES-10K"
+                      placeholder=""
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-mono"
                     />
                   </div>
@@ -895,7 +888,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                       type="text"
                       value={editingStoreItem.badge || ''}
                       onChange={(e) => setEditingStoreItem({ ...editingStoreItem, badge: e.target.value })}
-                      placeholder="e.g. High Precision, In Stock, Bestseller"
+                      placeholder=""
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
                     />
                   </div>
@@ -908,7 +901,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                     rows={2}
                     value={editingStoreItem.shortDesc || ''}
                     onChange={(e) => setEditingStoreItem({ ...editingStoreItem, shortDesc: e.target.value })}
-                    placeholder="Brief description of the component..."
+                    placeholder=""
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
                   />
                 </div>
@@ -922,7 +915,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                     rows={4}
                     value={specsInputText}
                     onChange={(e) => setSpecsInputText(e.target.value)}
-                    placeholder="Resistance: 10k Ohm ±1%&#10;Power Rating: 0.25W (1/4 Watt)&#10;Package: Through Hole THT&#10;Max Operating Voltage: 250V"
+                    placeholder=""
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-mono"
                   />
                   <p className="text-[10px] text-slate-400 mt-0.5">

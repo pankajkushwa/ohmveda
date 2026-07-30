@@ -76,14 +76,6 @@ export const Footer: React.FC<FooterProps> = ({ onOpenInquiry, onNavigate }) => 
             <p className="text-xs text-slate-600 leading-relaxed max-w-sm">
               OhmVeda is a multidisciplinary technology partner delivering innovative solutions across electronics, embedded systems, IoT, web platforms, mobile applications, and custom R&D.
             </p>
-
-            {/* Tagline Highlight */}
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-              <span className="text-[10px] font-bold font-mono text-blue-600 uppercase block">Official Brand Tagline</span>
-              <p className="text-xs font-bold text-slate-800">
-                "{COMPANY_INFO.tagline}"
-              </p>
-            </div>
           </div>
 
           {/* Quick Links */}
@@ -111,13 +103,13 @@ export const Footer: React.FC<FooterProps> = ({ onOpenInquiry, onNavigate }) => 
                 </button>
               </li>
               <li>
-                <button onClick={() => handleLink('careers')} className="hover:text-teal-600 transition-colors text-teal-600 font-semibold">
+                <button onClick={() => handleLink('careers')} className="hover:text-blue-600 transition-colors">
                   Careers
                 </button>
               </li>
               <li>
                 <button onClick={() => handleLink('home', 'about')} className="hover:text-blue-600 transition-colors">
-                  About OhmVeda
+                  About Us
                 </button>
               </li>
               <li>
@@ -197,41 +189,21 @@ export const Footer: React.FC<FooterProps> = ({ onOpenInquiry, onNavigate }) => 
 
         </div>
 
-        {/* Bottom Bar with Social Media */}
-        <div className="pt-8 flex flex-col md:flex-row items-center justify-between text-xs text-slate-500 gap-4 font-medium">
-          <div className="flex flex-col sm:flex-row items-center gap-3 text-center sm:text-left">
-            <p>© {new Date().getFullYear()} OhmVeda. All rights reserved.</p>
-            <span className="hidden sm:inline text-slate-300">•</span>
-            <p className="text-slate-500 text-[11px] font-mono">
-              {COMPANY_INFO.alternativeTaglines[0]}
-            </p>
-          </div>
-          
-          {/* Bottom Bar Social Media Badges */}
-          {socialLinks.length > 0 && (
-            <div className="flex items-center gap-2 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200">
-              <span className="text-[10px] font-bold text-slate-400 uppercase font-mono mr-1">Socials:</span>
-              {socialLinks.map((social) => (
-                <a
-                  key={`bottom-${social.id}`}
-                  href={social.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  title={`${social.platform} - ${social.url}`}
-                  className="p-1.5 rounded-lg text-slate-600 hover:text-blue-600 hover:bg-white transition-all duration-150 flex items-center justify-center"
-                >
-                  {renderSocialIcon(social.iconName, social.platform)}
-                </a>
-              ))}
-            </div>
-          )}
+        {/* Bottom Bar */}
+        <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4 font-medium relative">
+          <div className="hidden sm:block w-10"></div>
+
+          <p className="text-center text-xs text-slate-500 font-medium">
+            © 2026 OhmVeda Technologies. All rights reserved.
+          </p>
 
           <button
             onClick={scrollToTop}
-            className="px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors flex items-center gap-1 text-xs font-semibold cursor-pointer shrink-0"
+            title="Back to Top"
+            aria-label="Back to Top"
+            className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-100 transition-colors flex items-center justify-center cursor-pointer shrink-0"
           >
-            <span>Back to Top</span>
-            <ArrowUp className="w-3.5 h-3.5 text-blue-600" />
+            <ArrowUp className="w-4 h-4 text-blue-600" />
           </button>
         </div>
 

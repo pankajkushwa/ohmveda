@@ -56,7 +56,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenInquiry, onExplo
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.35, ease: 'easeOut' }}
-            className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4"
+            className="pt-4 flex items-center justify-center"
           >
             <motion.button
               whileHover={{ scale: 1.03 }}
@@ -67,16 +67,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenInquiry, onExplo
               <Zap className="w-4 h-4 fill-white text-white" />
               <span>Start Your Project</span>
               <ArrowRight className="w-4 h-4" />
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.03 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={onExploreCapabilities}
-              className="w-full sm:w-auto px-7 py-3.5 rounded-lg text-xs font-bold text-slate-200 bg-slate-950 hover:bg-slate-800 border border-slate-800 transition-colors flex items-center justify-center gap-2 cursor-pointer"
-            >
-              <Layers className="w-4 h-4 text-blue-400" />
-              <span>Explore Services</span>
             </motion.button>
           </motion.div>
 

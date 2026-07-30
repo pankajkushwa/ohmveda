@@ -216,170 +216,178 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
 
               {/* Products Submenu Cascading Flyout Dropdown Panel */}
-              {productsHover && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-[760px] animate-in fade-in slide-in-from-top-2 duration-150 z-50">
-                  {navProductCategories.length === 0 ? (
-                    <div className="bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl p-8 text-center text-slate-100 space-y-3">
-                      <Box className="w-10 h-10 text-slate-600 mx-auto" />
-                      <div>
-                        <p className="text-sm font-bold text-slate-200">Products Catalog Empty</p>
-                        <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-                          No hardware products are currently listed in the catalog. You can add new products in the Admin Dashboard.
-                        </p>
+              <AnimatePresence>
+                {productsHover && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.98 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                    transition={{ duration: 0.18, ease: 'easeOut' }}
+                    className="absolute top-full left-1/2 -translate-x-1/2 pt-2 w-[760px] z-50 pointer-events-auto"
+                  >
+                    {navProductCategories.length === 0 ? (
+                      <div className="bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl p-8 text-center text-slate-100 space-y-3">
+                        <Box className="w-10 h-10 text-slate-600 mx-auto" />
+                        <div>
+                          <p className="text-sm font-bold text-slate-200">Products Catalog Empty</p>
+                          <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                            No hardware products are currently listed in the catalog. You can add new products in the Admin Dashboard.
+                          </p>
+                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl text-slate-100 flex divide-x divide-slate-800/80 overflow-hidden min-h-[380px]">
-                      
-                      {/* Primary Left Column: Categories List */}
-                      <div className="w-[320px] p-3 space-y-1 bg-slate-950/90 shrink-0">
-                        <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-400 font-mono flex items-center justify-between border-b border-slate-800/80 mb-1">
-                          <span className="flex items-center gap-1.5">
-                            <Layers className="w-3 h-3 text-blue-400" />
-                            <span>Product Categories</span>
-                          </span>
-                          <span className="text-[9px] text-slate-500 font-normal">Hover to expand</span>
+                    ) : (
+                      <div className="bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl text-slate-100 flex divide-x divide-slate-800/80 overflow-hidden min-h-[380px]">
+                        
+                        {/* Primary Left Column: Categories List */}
+                        <div className="w-[320px] p-3 space-y-1 bg-slate-950/90 shrink-0">
+                          <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-blue-400 font-mono flex items-center justify-between border-b border-slate-800/80 mb-1">
+                            <span className="flex items-center gap-1.5">
+                              <Layers className="w-3 h-3 text-blue-400" />
+                              <span>Product Categories</span>
+                            </span>
+                            <span className="text-[9px] text-slate-500 font-normal">Hover to expand</span>
+                          </div>
+
+                          {navProductCategories.map((cat, idx) => {
+                            const Icon = cat.icon || Box;
+                            const isActive = activeCategory === cat.id;
+
+                            return (
+                              <motion.button
+                                key={cat.id}
+                                initial={{ opacity: 0, x: -6 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                transition={{ duration: 0.15, delay: idx * 0.02 }}
+                                whileHover={{ x: 3 }}
+                                onMouseEnter={() => setActiveCategory(cat.id)}
+                                onClick={() => handleCategoryNav(cat)}
+                                className={`w-full text-left px-3 py-2.5 rounded-xl transition-all duration-150 flex items-center justify-between group cursor-pointer ${
+                                  isActive
+                                    ? 'bg-blue-600 text-white shadow-md'
+                                    : 'hover:bg-slate-900 text-slate-300'
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5 min-w-0">
+                                  <div
+                                    className={`p-1.5 rounded-lg shrink-0 transition-colors ${
+                                      isActive
+                                        ? 'bg-blue-500 text-white'
+                                        : 'bg-slate-900 border border-slate-800 text-blue-400 group-hover:bg-blue-600 group-hover:text-white'
+                                    }`}
+                                  >
+                                    <Icon className="w-4 h-4" />
+                                  </div>
+                                  <span
+                                    className={`text-xs font-bold truncate ${
+                                      isActive ? 'text-white' : 'text-slate-100 group-hover:text-blue-400'
+                                    }`}
+                                  >
+                                    {cat.title}
+                                  </span>
+                                </div>
+
+                                <ChevronRight
+                                  className={`w-4 h-4 transition-transform shrink-0 ${
+                                    isActive
+                                      ? 'text-white translate-x-0.5'
+                                      : 'text-slate-600 group-hover:text-slate-300'
+                                  }`}
+                                />
+                              </motion.button>
+                            );
+                          })}
                         </div>
 
-                        {navProductCategories.map((cat, idx) => {
-                          const Icon = cat.icon || Box;
-                          const isActive = activeCategory === cat.id;
+                        {/* Secondary Right Column: Animated Product Scroll Panel Showing Only Product Names */}
+                        <div className="w-[440px] p-4 bg-slate-900/95 flex flex-col justify-between">
+                          <div>
+                            {/* Header of Active Category */}
+                            {currentCategoryObj && (
+                              <>
+                                <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-black text-white tracking-wide uppercase">
+                                      {currentCategoryObj.title}
+                                    </span>
+                                    <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-blue-950 text-blue-400 border border-blue-800/80">
+                                      {currentCategoryObj.items.length} Products
+                                    </span>
+                                  </div>
 
-                          return (
-                            <motion.button
-                              key={cat.id}
-                              initial={{ opacity: 0, x: -6 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.15, delay: idx * 0.02 }}
-                              whileHover={{ x: 3 }}
-                              onMouseEnter={() => setActiveCategory(cat.id)}
-                              onClick={() => handleCategoryNav(cat)}
-                              className={`w-full text-left px-3 py-2.5 rounded-xl transition-all duration-150 flex items-center justify-between group cursor-pointer ${
-                                isActive
-                                  ? 'bg-blue-600 text-white shadow-md'
-                                  : 'hover:bg-slate-900 text-slate-300'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2.5 min-w-0">
-                                <div
-                                  className={`p-1.5 rounded-lg shrink-0 transition-colors ${
-                                    isActive
-                                      ? 'bg-blue-500 text-white'
-                                      : 'bg-slate-900 border border-slate-800 text-blue-400 group-hover:bg-blue-600 group-hover:text-white'
-                                  }`}
-                                >
-                                  <Icon className="w-4 h-4" />
-                                </div>
-                                <span
-                                  className={`text-xs font-bold truncate ${
-                                    isActive ? 'text-white' : 'text-slate-100 group-hover:text-blue-400'
-                                  }`}
-                                >
-                                  {cat.title}
-                                </span>
-                              </div>
-
-                              <ChevronRight
-                                className={`w-4 h-4 transition-transform shrink-0 ${
-                                  isActive
-                                    ? 'text-white translate-x-0.5'
-                                    : 'text-slate-600 group-hover:text-slate-300'
-                                }`}
-                              />
-                            </motion.button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Secondary Right Column: Animated Product Scroll Panel Showing Only Product Names */}
-                      <div className="w-[440px] p-4 bg-slate-900/95 flex flex-col justify-between">
-                        <div>
-                          {/* Header of Active Category */}
-                          {currentCategoryObj && (
-                            <>
-                              <div className="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-xs font-black text-white tracking-wide uppercase">
-                                    {currentCategoryObj.title}
-                                  </span>
-                                  <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded bg-blue-950 text-blue-400 border border-blue-800/80">
-                                    {currentCategoryObj.items.length} Products
-                                  </span>
-                                </div>
-
-                                <button
-                                  onClick={() => handleCategoryNav(currentCategoryObj)}
-                                  className="text-[11px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 hover:underline transition-colors"
-                                >
-                                  <span>View All</span>
-                                  <ArrowRight className="w-3 h-3" />
-                                </button>
-                              </div>
-
-                              {/* Animated Product Names List */}
-                              <div className="space-y-1.5 max-h-[310px] overflow-y-auto pr-1">
-                                <AnimatePresence mode="wait">
-                                  <motion.div
-                                    key={currentCategoryObj.id}
-                                    initial={{ opacity: 0, y: 6 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -6 }}
-                                    transition={{ duration: 0.18 }}
-                                    className="space-y-1.5"
+                                  <button
+                                    onClick={() => handleCategoryNav(currentCategoryObj)}
+                                    className="text-[11px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 hover:underline transition-colors"
                                   >
-                                    {currentCategoryObj.items.map((item, index) => {
-                                      return (
-                                        <motion.button
-                                          key={item.id}
-                                          initial={{ opacity: 0, x: -8 }}
-                                          animate={{ opacity: 1, x: 0 }}
-                                          transition={{ duration: 0.15, delay: index * 0.03 }}
-                                          whileHover={{ x: 4 }}
-                                          onClick={() => handleItemClick(item)}
-                                          className="w-full text-left px-3.5 py-2.5 rounded-xl bg-slate-950/90 hover:bg-slate-800 border border-slate-800/80 hover:border-blue-500/50 transition-all flex items-center justify-between group/item shadow-xs hover:shadow-md cursor-pointer"
-                                        >
-                                          <div className="flex items-center gap-2.5 min-w-0">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500 group-hover/item:scale-125 group-hover/item:bg-blue-400 transition-all shrink-0" />
-                                            <span className="text-xs font-bold text-slate-100 group-hover/item:text-blue-400 transition-colors truncate">
-                                              {item.title}
-                                            </span>
-                                          </div>
+                                    <span>View All</span>
+                                    <ArrowRight className="w-3 h-3" />
+                                  </button>
+                                </div>
 
-                                          <ChevronRight className="w-4 h-4 text-slate-600 group-hover/item:text-blue-400 group-hover/item:translate-x-0.5 transition-all shrink-0" />
-                                        </motion.button>
-                                      );
-                                    })}
-                                  </motion.div>
-                                </AnimatePresence>
-                              </div>
-                            </>
+                                {/* Animated Product Names List */}
+                                <div className="space-y-1.5 max-h-[310px] overflow-y-auto pr-1">
+                                  <AnimatePresence mode="wait">
+                                    <motion.div
+                                      key={currentCategoryObj.id}
+                                      initial={{ opacity: 0, y: 6 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      exit={{ opacity: 0, y: -6 }}
+                                      transition={{ duration: 0.18 }}
+                                      className="space-y-1.5"
+                                    >
+                                      {currentCategoryObj.items.map((item, index) => {
+                                        return (
+                                          <motion.button
+                                            key={item.id}
+                                            initial={{ opacity: 0, x: -8 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ duration: 0.15, delay: index * 0.03 }}
+                                            whileHover={{ x: 4 }}
+                                            onClick={() => handleItemClick(item)}
+                                            className="w-full text-left px-3.5 py-2.5 rounded-xl bg-slate-950/90 hover:bg-slate-800 border border-slate-800/80 hover:border-blue-500/50 transition-all flex items-center justify-between group/item shadow-xs hover:shadow-md cursor-pointer"
+                                          >
+                                            <div className="flex items-center gap-2.5 min-w-0">
+                                              <span className="w-1.5 h-1.5 rounded-full bg-blue-500 group-hover/item:scale-125 group-hover/item:bg-blue-400 transition-all shrink-0" />
+                                              <span className="text-xs font-bold text-slate-100 group-hover/item:text-blue-400 transition-colors truncate">
+                                                {item.title}
+                                              </span>
+                                            </div>
+
+                                            <ChevronRight className="w-4 h-4 text-slate-600 group-hover/item:text-blue-400 group-hover/item:translate-x-0.5 transition-all shrink-0" />
+                                          </motion.button>
+                                        );
+                                      })}
+                                    </motion.div>
+                                  </AnimatePresence>
+                                </div>
+                              </>
+                            )}
+                          </div>
+
+                          {/* Footer info line */}
+                          {currentCategoryObj && (
+                            <div className="pt-3 border-t border-slate-800/80 mt-2 flex items-center justify-between text-[11px] text-slate-400">
+                              <span className="flex items-center gap-1">
+                                <Radio className="w-3.5 h-3.5 text-blue-400" />
+                                <span>OhmVeda Telematics Systems</span>
+                              </span>
+                              <button
+                                onClick={() => {
+                                  setProductsHover(false);
+                                  onOpenInquiry(currentCategoryObj.title);
+                                }}
+                                className="text-blue-400 font-bold hover:underline"
+                              >
+                                Request Custom Specs
+                              </button>
+                            </div>
                           )}
                         </div>
 
-                        {/* Footer info line */}
-                        {currentCategoryObj && (
-                          <div className="pt-3 border-t border-slate-800/80 mt-2 flex items-center justify-between text-[11px] text-slate-400">
-                            <span className="flex items-center gap-1">
-                              <Radio className="w-3.5 h-3.5 text-blue-400" />
-                              <span>OhmVeda Telematics Systems</span>
-                            </span>
-                            <button
-                              onClick={() => {
-                                setProductsHover(false);
-                                onOpenInquiry(currentCategoryObj.title);
-                              }}
-                              className="text-blue-400 font-bold hover:underline"
-                            >
-                              Request Custom Specs
-                            </button>
-                          </div>
-                        )}
                       </div>
-
-                    </div>
-                  )}
-                </div>
-              )}
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* Services */}
@@ -532,162 +540,210 @@ export const Header: React.FC<HeaderProps> = ({
       </div>
 
       {/* Mobile Menu */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden bg-slate-950 border-b border-slate-800 px-4 py-5 space-y-4 max-h-[80vh] overflow-y-auto">
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => handleNavClick('home', 'hero')}
-              className={`px-3 py-2.5 rounded-lg text-xs font-bold text-left transition-colors ${
-                currentPage === 'home' && activeSection === 'hero'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              Home
-            </button>
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.25, ease: 'easeInOut' }}
+            className="lg:hidden bg-white border-b border-slate-200/90 px-4 py-5 shadow-xl max-h-[85vh] overflow-y-auto space-y-4"
+          >
+            <div className="flex flex-col gap-1.5">
+              {/* Home */}
+              <button
+                onClick={() => handleNavClick('home', 'hero')}
+                className={`w-full px-4 py-3 rounded-xl text-xs font-bold text-left transition-all flex items-center justify-between ${
+                  currentPage === 'home' && activeSection === 'hero'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <Box className="w-4 h-4 text-blue-500" />
+                  <span>Home</span>
+                </span>
+                <ChevronRight className="w-4 h-4 opacity-50" />
+              </button>
 
-            <button
-              onClick={() => setMobileProductsOpen(!mobileProductsOpen)}
-              className={`px-3 py-2.5 rounded-lg text-xs font-bold text-left transition-colors flex items-center justify-between col-span-2 ${
-                currentPage === 'products'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              <span className="flex items-center gap-1.5">
-                <Layers className="w-3.5 h-3.5 text-blue-400" />
-                <span>Products & Categories</span>
-              </span>
-              <ChevronDown className={`w-4 h-4 transition-transform ${mobileProductsOpen ? 'rotate-180' : ''}`} />
-            </button>
+              {/* Products */}
+              <div>
+                <button
+                  onClick={() => setMobileProductsOpen(!mobileProductsOpen)}
+                  className={`w-full px-4 py-3 rounded-xl text-xs font-bold text-left transition-all flex items-center justify-between ${
+                    currentPage === 'products' || mobileProductsOpen
+                      ? 'bg-blue-50/80 text-blue-700 border border-blue-200/80'
+                      : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5">
+                    <Layers className="w-4 h-4 text-blue-600" />
+                    <span>Products</span>
+                  </span>
+                  <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${mobileProductsOpen ? 'rotate-180 text-blue-600' : 'text-slate-400'}`} />
+                </button>
 
-            {/* Mobile Expandable Categories */}
-            {mobileProductsOpen && (
-              <div className="col-span-2 space-y-3 bg-slate-900/90 p-3 rounded-xl border border-slate-800">
-                {navProductCategories.length === 0 ? (
-                  <div className="p-3 text-center text-slate-400 text-xs">
-                    No products available in catalog.
-                  </div>
-                ) : (
-                  navProductCategories.map((cat) => {
-                    const CatIcon = cat.icon || Box;
-                    return (
-                      <div key={cat.id} className="space-y-1">
-                        <button
-                          onClick={() => handleCategoryNav(cat)}
-                          className="w-full text-left py-1.5 px-2 text-xs font-extrabold text-blue-400 hover:text-white flex items-center justify-between border-b border-slate-800/80"
-                        >
-                          <span className="flex items-center gap-1.5">
-                            <CatIcon className="w-3.5 h-3.5" />
-                            <span>{cat.title}</span>
-                          </span>
-                          <ArrowRight className="w-3 h-3 text-slate-500" />
-                        </button>
-
-                        <div className="pl-3 space-y-1 pt-1">
-                          {cat.items.map((sub: any) => (
-                            <button
-                              key={sub.id}
-                              onClick={() => handleItemClick(sub)}
-                              className="w-full text-left py-1.5 px-2 rounded-lg hover:bg-slate-800 text-[11px] font-medium text-slate-300 flex items-center justify-between group"
-                            >
-                              <span className="truncate group-hover:text-blue-400 transition-colors">{sub.title}</span>
-                              <ChevronRight className="w-3 h-3 text-slate-600 group-hover:text-blue-400 shrink-0" />
-                            </button>
-                          ))}
+                {/* Mobile Expandable Product Categories Accordion */}
+                <AnimatePresence>
+                  {mobileProductsOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="mt-1.5 ml-2 pl-3 border-l-2 border-blue-200 space-y-2 py-2 overflow-hidden"
+                    >
+                      {navProductCategories.length === 0 ? (
+                        <div className="p-2.5 text-slate-500 text-xs italic">
+                          No products available in catalog.
                         </div>
-                      </div>
-                    );
-                  })
-                )}
+                      ) : (
+                        navProductCategories.map((cat) => {
+                          const CatIcon = cat.icon || Box;
+                          return (
+                            <div key={cat.id} className="space-y-1">
+                              <button
+                                onClick={() => handleCategoryNav(cat)}
+                                className="w-full text-left py-2 px-3 rounded-lg text-xs font-extrabold text-slate-800 hover:text-blue-600 hover:bg-blue-50/50 flex items-center justify-between transition-colors"
+                              >
+                                <span className="flex items-center gap-2 min-w-0">
+                                  <CatIcon className="w-3.5 h-3.5 text-blue-600 shrink-0" />
+                                  <span className="truncate">{cat.title}</span>
+                                </span>
+                                <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                              </button>
+
+                              <div className="pl-5 space-y-1">
+                                {cat.items.map((sub: any) => (
+                                  <button
+                                    key={sub.id}
+                                    onClick={() => handleItemClick(sub)}
+                                    className="w-full text-left py-1.5 px-2.5 rounded-md hover:bg-slate-100 text-[11px] font-medium text-slate-600 hover:text-blue-600 flex items-center justify-between group transition-colors"
+                                  >
+                                    <span className="truncate">{sub.title}</span>
+                                    <ChevronRight className="w-3 h-3 text-slate-400 group-hover:text-blue-600 shrink-0" />
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
-            )}
 
-            <button
-              onClick={() => handleNavClick('home', 'services')}
-              className={`px-3 py-2.5 rounded-lg text-xs font-bold text-left transition-colors ${
-                currentPage === 'home' && activeSection === 'services'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              Services
-            </button>
+              {/* Services */}
+              <button
+                onClick={() => handleNavClick('home', 'services')}
+                className={`w-full px-4 py-3 rounded-xl text-xs font-bold text-left transition-all flex items-center justify-between ${
+                  currentPage === 'home' && activeSection === 'services'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <Wrench className="w-4 h-4 text-blue-500" />
+                  <span>Services</span>
+                </span>
+                <ChevronRight className="w-4 h-4 opacity-50" />
+              </button>
 
-            <button
-              onClick={() => handleNavClick('store', 'store')}
-              className={`px-3 py-2.5 rounded-lg text-xs font-bold text-left transition-colors ${
-                currentPage === 'store'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              Store (Components)
-            </button>
+              {/* Store */}
+              <button
+                onClick={() => handleNavClick('store', 'store')}
+                className={`w-full px-4 py-3 rounded-xl text-xs font-bold text-left transition-all flex items-center justify-between ${
+                  currentPage === 'store'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <Package className="w-4 h-4 text-blue-500" />
+                  <span>Store</span>
+                </span>
+                <ChevronRight className="w-4 h-4 opacity-50" />
+              </button>
 
-            <button
-              onClick={() => handleNavClick('careers', 'careers')}
-              className={`px-3 py-2.5 rounded-lg text-xs font-bold text-left transition-colors ${
-                currentPage === 'careers'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              Careers & Placements
-            </button>
+              {/* Careers */}
+              <button
+                onClick={() => handleNavClick('careers', 'careers')}
+                className={`w-full px-4 py-3 rounded-xl text-xs font-bold text-left transition-all flex items-center justify-between ${
+                  currentPage === 'careers'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <User className="w-4 h-4 text-blue-500" />
+                  <span>Careers</span>
+                </span>
+                <ChevronRight className="w-4 h-4 opacity-50" />
+              </button>
 
-            <button
-              onClick={() => handleNavClick('home', 'about')}
-              className={`px-3 py-2.5 rounded-lg text-xs font-bold text-left transition-colors ${
-                currentPage === 'home' && activeSection === 'about'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              About
-            </button>
+              {/* About */}
+              <button
+                onClick={() => handleNavClick('home', 'about')}
+                className={`w-full px-4 py-3 rounded-xl text-xs font-bold text-left transition-all flex items-center justify-between ${
+                  currentPage === 'home' && activeSection === 'about'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-blue-500" />
+                  <span>About</span>
+                </span>
+                <ChevronRight className="w-4 h-4 opacity-50" />
+              </button>
 
-            <button
-              onClick={() => handleNavClick('home', 'contact')}
-              className={`px-3 py-2.5 rounded-lg text-xs font-bold text-left transition-colors ${
-                currentPage === 'home' && activeSection === 'contact'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              Contact Us
-            </button>
+              {/* Contact Us */}
+              <button
+                onClick={() => handleNavClick('home', 'contact')}
+                className={`w-full px-4 py-3 rounded-xl text-xs font-bold text-left transition-all flex items-center justify-between ${
+                  currentPage === 'home' && activeSection === 'contact'
+                    ? 'bg-blue-600 text-white shadow-xs'
+                    : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                }`}
+              >
+                <span className="flex items-center gap-2.5">
+                  <Zap className="w-4 h-4 text-blue-500" />
+                  <span>Contact Us</span>
+                </span>
+                <ChevronRight className="w-4 h-4 opacity-50" />
+              </button>
+            </div>
 
+            {/* Mobile Actions Footer */}
+            <div className="pt-4 border-t border-slate-200 flex flex-col gap-2.5">
+              {!userProfile && (
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    onOpenAuth();
+                  }}
+                  className="w-full py-2.5 rounded-xl text-xs font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-200/80 flex items-center justify-center gap-2 transition-colors"
+                >
+                  <User className="w-4 h-4 text-blue-600" />
+                  <span>Login / Sign Up</span>
+                </button>
+              )}
 
-          </div>
-
-          <div className="pt-3 border-t border-slate-800 flex flex-col gap-2">
-            {!userProfile && (
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
-                  onOpenAuth();
+                  onOpenInquiry();
                 }}
-                className="w-full py-2.5 rounded-lg text-xs font-bold text-slate-200 bg-slate-900 border border-slate-800 flex items-center justify-center gap-2"
+                className="w-full py-3 rounded-xl text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 flex items-center justify-center gap-2 shadow-sm transition-colors"
               >
-                <User className="w-4 h-4 text-blue-400" />
-                <span>Login / Sign Up</span>
+                <Zap className="w-4 h-4 fill-white" />
+                <span>Get Project Proposal</span>
               </button>
-            )}
-
-            <button
-              onClick={() => {
-                setMobileMenuOpen(false);
-                onOpenInquiry();
-              }}
-              className="w-full py-3 rounded-lg text-xs font-bold text-white bg-blue-600 flex items-center justify-center gap-2"
-            >
-              <Zap className="w-4 h-4 fill-white" />
-              <span>Get Project Proposal</span>
-            </button>
-          </div>
-        </div>
-      )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 };
