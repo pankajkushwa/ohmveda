@@ -288,13 +288,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           <div className="mt-3">
             <h3 className="text-2xl font-black text-slate-900 tracking-tight">{stats.cancelledCount}</h3>
             <p className="text-xs text-red-600 mt-1 font-bold">
-              {stats.cancelledCount === 0 ? (
-                'No Cancelled Orders'
-              ) : stats.onlineRefundRevenue > 0 ? (
-                `₹${stats.onlineRefundRevenue.toLocaleString('en-IN')} Online Refund` + (stats.codCancelledCount > 0 ? ` (${stats.codCancelledCount} COD - No refund)` : '')
-              ) : (
-                'No refund due to COD order'
-              )}
+              Cancelled
             </p>
           </div>
         </div>
