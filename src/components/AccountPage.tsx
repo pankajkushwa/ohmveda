@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { 
   Package, MapPin, Printer, Plus, Trash2, Edit3, ShieldCheck, ArrowRight,
   ChevronRight, CheckCircle2, Receipt, User, Search, FileText, Check, AlertCircle,
-  Copy, ArrowLeft, Building2, Phone, Sparkles, LogOut, ExternalLink, RefreshCw, Layers
+  Copy, ArrowLeft, Building2, Phone, Sparkles, LogOut, ExternalLink, RefreshCw, Layers,
+  Truck, Clock, CreditCard, Mail, Box, Ban
 } from 'lucide-react';
 import { UserAddress, UserOrder, UserProfile, SeparateBillingAddress, StoreItem } from '../types';
 import { 
   getStoredUserAddresses, 
   getStoredUserOrders, 
+  updateStoredUserOrder,
   saveStoredUserAddress, 
   deleteStoredUserAddress,
   saveRegisteredUserProfile
@@ -35,10 +37,43 @@ export const AccountPage: React.FC<AccountPageProps> = ({
   // Sidebar Navigation Selection Menu State
   const [activeTab, setActiveTab] = useState<'orders' | 'addresses' | 'gstin' | 'profile'>('orders');
 
-  // Orders State
+  // Orders State & Detailed View State
   const [orders, setOrders] = useState<UserOrder[]>([]);
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<UserOrder | null>(null);
+
+  // Cancellation Modal State
+  const [orderToCancel, setOrderToCancel] = useState<UserOrder | null>(null);
+  const [cancelReason, setCancelReason] = useState('Ordered by mistake');
+
+  const canCancelOrder = (status: string) => {
+    return status === 'Order Placed' || status === 'Processing';
+  };
+
+  const handleConfirmCancelOrder = () => {
+    if (!orderToCancel) return;
+
+    const updatedOrder: UserOrder = {
+      ...orderToCancel,
+      orderStatus: 'Cancelled',
+      paymentStatus: orderToCancel.paymentStatus === 'Paid' ? 'Refund Pending' : 'Cancelled',
+      adminDispatchNotes: `Cancelled by customer on ${new Date().toLocaleDateString('en-IN')}. Reason: ${cancelReason}`,
+    };
+
+    const updatedList = updateStoredUserOrder(updatedOrder);
+    if (userProfile?.id) {
+      setOrders(updatedList.filter((o) => o.userId === userProfile.id));
+    } else {
+      setOrders(updatedList);
+    }
+
+    if (selectedOrder && selectedOrder.id === orderToCancel.id) {
+      setSelectedOrder(updatedOrder);
+    }
+
+    setOrderToCancel(null);
+  };
 
   // Addresses State
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
@@ -518,280 +553,497 @@ export const AccountPage: React.FC<AccountPageProps> = ({
             
             {/* VIEW 1: MY ORDERS */}
             {activeTab === 'orders' && (
-              <div className="space-y-6">
-                <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
-                  <div>
-                    <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
-                      <Package className="w-5 h-5 text-blue-600" />
-                      <span>My Orders & Dispatch Trackers</span>
-                    </h2>
-                    <p className="text-xs text-slate-500">
-                      Track courier dispatches, view purchased hardware items, and print GST invoices.
-                    </p>
+              selectedOrder ? (
+                /* DEDICATED FULL ORDER & INVOICE SPECIFICATION VIEW */
+                <div className="space-y-6 animate-fadeIn">
+                  {/* Top Header / Navigation Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
+                    <button
+                      onClick={() => setSelectedOrder(null)}
+                      className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors flex items-center gap-2 cursor-pointer border border-slate-200"
+                    >
+                      <ArrowLeft className="w-4 h-4 text-slate-600" />
+                      <span>Back to Orders List</span>
+                    </button>
+
+                    <div className="flex items-center gap-2">
+                      <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border ${
+                        selectedOrder.orderStatus === 'Cancelled'
+                          ? 'bg-red-50 text-red-800 border-red-200'
+                          : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      }`}>
+                        {selectedOrder.orderStatus}
+                      </span>
+                      {canCancelOrder(selectedOrder.orderStatus) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOrderToCancel(selectedOrder);
+                            setCancelReason('Ordered by mistake');
+                          }}
+                          className="px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
+                        >
+                          <Ban className="w-4 h-4 text-red-600" />
+                          <span>Cancel Order</span>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => window.print()}
+                        className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-2 transition-colors cursor-pointer shadow-sm"
+                      >
+                        <Printer className="w-4 h-4" />
+                        <span>Print Official Tax Invoice</span>
+                      </button>
+                    </div>
                   </div>
 
-                  {orders.length > 0 && (
-                    <div className="relative w-full sm:w-64">
-                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                      <input
-                        type="text"
-                        placeholder="Search by order ID or item..."
-                        value={orderSearchQuery}
-                        onChange={(e) => setOrderSearchQuery(e.target.value)}
-                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-blue-500"
-                      />
+                  {/* Order ID Banner */}
+                  <div className="p-4 rounded-2xl bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3 shadow-md">
+                    <div>
+                      <span className="text-[10px] font-mono uppercase text-blue-400 font-bold block">ORDER NUMBER</span>
+                      <h2 className="text-xl font-black font-mono text-white flex items-center gap-2">
+                        <span>#{selectedOrder.id}</span>
+                        <button
+                          onClick={() => handleCopyOrderId(selectedOrder.id)}
+                          className="p-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                          title="Copy Order ID"
+                        >
+                          {copiedOrderId === selectedOrder.id ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                        </button>
+                      </h2>
                     </div>
-                  )}
-                </div>
 
-                {filteredOrders.length === 0 ? (
-                  <div className="py-20 text-center space-y-4">
-                    <div className="w-20 h-20 rounded-3xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
-                      <Package className="w-10 h-10 text-slate-400" />
-                    </div>
-                    <div className="space-y-1 max-w-sm mx-auto">
-                      <h3 className="text-base font-extrabold text-slate-800">
-                        {orders.length === 0 ? 'No orders placed yet' : 'No matching orders'}
-                      </h3>
-                      <p className="text-xs text-slate-500">
-                        {orders.length === 0 
-                          ? 'Browse our store for microcontrollers, sensors, development kits, and prototyping modules to place your first order.'
-                          : 'Try searching with different keywords.'}
+                    <div className="text-right">
+                      <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">PLACED ON</span>
+                      <p className="text-sm font-bold text-slate-200">
+                        {new Date(selectedOrder.createdAt).toLocaleDateString('en-IN', {
+                          day: '2-digit',
+                          month: 'long',
+                          year: 'numeric',
+                        })} at {new Date(selectedOrder.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                       </p>
                     </div>
-                    {onNavigateToStore && (
-                      <button
-                        onClick={onNavigateToStore}
-                        className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 transition-colors shadow-sm inline-flex items-center gap-2 cursor-pointer"
-                      >
-                        <Package className="w-4 h-4" />
-                        <span>Explore Hardware Store</span>
-                      </button>
+                  </div>
+
+                  {/* 4 Executive Overview Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block font-mono">Total Paid</span>
+                      <p className="text-lg font-black text-slate-900">₹{selectedOrder.totalAmount.toLocaleString()}</p>
+                      <span className="text-[10px] text-slate-500">Incl. ₹{selectedOrder.gstAmount.toLocaleString()} GST</span>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block font-mono">Payment Status</span>
+                      <p className="text-sm font-extrabold text-slate-900 mt-1">{selectedOrder.paymentMethod}</p>
+                      <span className="text-[10px] text-emerald-700 font-bold uppercase">{selectedOrder.paymentStatus}</span>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block font-mono">Est. Delivery</span>
+                      <p className="text-sm font-extrabold text-blue-700 mt-1">{selectedOrder.estimatedDelivery || '2-4 Days'}</p>
+                      <span className="text-[10px] text-slate-500">Express Air Freight</span>
+                    </div>
+
+                    <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block font-mono">Warehouse Location</span>
+                      <p className="text-xs font-bold text-slate-900 mt-1">Vadodara, Gujarat</p>
+                      <span className="text-[10px] text-slate-500">Ohm Veda Tech Hub</span>
+                    </div>
+                  </div>
+
+                  {/* Dispatch Courier & Live Delivery Status Details */}
+                  <div className="p-4 rounded-2xl bg-blue-50/80 border border-blue-200 space-y-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-blue-200/80">
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-5 h-5 text-blue-600" />
+                        <div>
+                          <h4 className="text-xs font-extrabold text-blue-950 uppercase tracking-wide">Live Delivery & Dispatch Status</h4>
+                          <p className="text-[11px] text-slate-600">Real-time status provided by logistic partners.</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className={`px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider text-white shadow-xs ${
+                          selectedOrder.orderStatus === 'Cancelled' ? 'bg-red-600' : 'bg-blue-600'
+                        }`}>
+                          {selectedOrder.orderStatus}
+                        </span>
+                        {selectedOrder.courierTrackingUrl && (
+                          <a
+                            href={selectedOrder.courierTrackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3.5 py-1.5 rounded-xl bg-slate-900 text-white font-bold text-xs hover:bg-slate-800 transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+                          >
+                            <span>Live Track Package</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Visual 4-Step Delivery Progress Stepper */}
+                    <div className="bg-white p-4 rounded-xl border border-blue-200/80 space-y-2">
+                      <div className="flex items-center justify-between text-xs font-extrabold text-slate-800 pb-1">
+                        <span>Delivery Lifecycle Stage</span>
+                        <span className="text-slate-500 font-mono font-normal">
+                          Est. Delivery: <strong className="text-blue-700">{selectedOrder.estimatedDelivery || '2-4 Business Days'}</strong>
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-2 text-center pt-1">
+                        {[
+                          { title: 'Order Placed', step: 1, subtitle: 'Received at Hub' },
+                          { title: 'Processing', step: 2, subtitle: 'Packed & Ready' },
+                          { title: 'Shipped', step: 3, subtitle: 'In Transit' },
+                          { title: 'Delivered', step: 4, subtitle: 'Handed to Customer' },
+                        ].map((st) => {
+                          const currentStep = getOrderStatusStep(selectedOrder.orderStatus);
+                          const isDone = currentStep >= st.step;
+                          return (
+                            <div key={st.step} className="space-y-1">
+                              <div className={`h-2.5 rounded-full transition-all ${
+                                isDone ? 'bg-blue-600 shadow-xs' : 'bg-slate-200'
+                              }`} />
+                              <div className="space-y-0.5">
+                                <span className={`text-xs font-extrabold block ${
+                                  isDone ? 'text-blue-700' : 'text-slate-400'
+                                }`}>
+                                  {st.title}
+                                </span>
+                                <span className="text-[10px] text-slate-400 hidden sm:block font-medium">
+                                  {st.subtitle}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-mono uppercase block font-bold">Courier Partner</span>
+                        <p className="font-bold text-slate-900">{selectedOrder.courierPartner || 'Express Air Courier'}</p>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-mono uppercase block font-bold">AWB Tracking Number</span>
+                        <p className="font-mono font-black text-blue-700 text-sm">
+                          {selectedOrder.trackingNumber || 'Pending Courier Scan'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {selectedOrder.adminDispatchNotes && (
+                      <div className="p-3 bg-white rounded-xl border border-blue-200 text-xs text-slate-700 italic">
+                        <strong>Warehouse Dispatch Note:</strong> {selectedOrder.adminDispatchNotes}
+                      </div>
                     )}
                   </div>
-                ) : (
-                  <div className="space-y-6">
-                    {filteredOrders.map((order) => {
-                      const currentStep = getOrderStatusStep(order.orderStatus);
-                      return (
-                        <div
-                          key={order.id}
-                          className="p-5 rounded-2xl border border-slate-200 bg-white hover:border-blue-200 transition-all shadow-xs space-y-4"
-                        >
-                          {/* Order Summary Bar */}
-                          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 text-xs font-mono">
-                            <div>
-                              <span className="text-[10px] text-slate-400 block font-sans uppercase font-bold">ORDER NUMBER</span>
-                              <div className="flex items-center gap-1.5 font-black text-blue-600 text-sm">
-                                <span>#{order.id}</span>
-                                <button
-                                  onClick={() => handleCopyOrderId(order.id)}
-                                  title="Copy Order ID"
-                                  className="p-1 rounded text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                                >
-                                  {copiedOrderId === order.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
-                                </button>
+
+                  {/* Itemized Purchased Hardware Table */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                        <Box className="w-4 h-4 text-blue-600" />
+                        <span>Purchased Store Items ({selectedOrder.items.length})</span>
+                      </h3>
+                    </div>
+
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs">
+                      <div className="bg-slate-100 p-3 grid grid-cols-12 text-[11px] font-bold text-slate-600 font-mono uppercase border-b border-slate-200">
+                        <span className="col-span-6">Product Details</span>
+                        <span className="col-span-2 text-center">Unit Price</span>
+                        <span className="col-span-2 text-center">Qty</span>
+                        <span className="col-span-2 text-right">Subtotal</span>
+                      </div>
+
+                      <div className="divide-y divide-slate-100 bg-white">
+                        {selectedOrder.items.map((item, idx) => (
+                          <div key={idx} className="p-3.5 grid grid-cols-12 items-center text-xs hover:bg-slate-50/80 transition-colors">
+                            <div className="col-span-6 flex items-center gap-3 min-w-0 pr-2">
+                              <img
+                                src={item.image}
+                                alt={item.productName}
+                                className="w-12 h-12 rounded-xl object-cover border border-slate-200 bg-white shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <p className="font-extrabold text-slate-900 truncate text-sm">{item.productName}</p>
+                                <p className="text-[11px] font-mono text-slate-500">SKU: {item.sku}</p>
                               </div>
                             </div>
 
-                            <div>
-                              <span className="text-[10px] text-slate-400 block font-sans uppercase font-bold">PLACED ON</span>
-                              <span className="font-bold text-slate-800">
-                                {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                  year: 'numeric',
-                                })}
+                            <div className="col-span-2 text-center font-mono font-semibold text-slate-700">
+                              ₹{item.price.toLocaleString()}
+                            </div>
+
+                            <div className="col-span-2 text-center">
+                              <span className="inline-block px-2.5 py-0.5 rounded-lg bg-slate-100 text-slate-900 font-black font-mono border border-slate-200">
+                                {item.quantity}
                               </span>
                             </div>
 
-                            <div>
-                              <span className="text-[10px] text-slate-400 block font-sans uppercase font-bold">PAYMENT STATUS</span>
-                              <span className="font-bold text-slate-700">
-                                {order.paymentMethod} • <span className="text-emerald-700">{order.paymentStatus}</span>
-                              </span>
-                            </div>
-
-                            <div>
-                              <span className="text-[10px] text-slate-400 block font-sans uppercase font-bold">TOTAL AMOUNT</span>
-                              <span className="font-black text-slate-900 text-base">₹{order.totalAmount.toLocaleString()}</span>
-                            </div>
-
-                            <div>
-                              <span className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200">
-                                {order.orderStatus}
-                              </span>
+                            <div className="col-span-2 text-right font-mono font-black text-slate-900 text-sm">
+                              ₹{(item.price * item.quantity).toLocaleString()}
                             </div>
                           </div>
+                        ))}
+                      </div>
 
-                          {/* Courier Dispatch Progress Bar & Tracking Details */}
-                          <div className="p-3.5 bg-slate-50 rounded-xl border border-slate-200/80 space-y-3">
-                            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-bold text-slate-800">
-                              <span className="flex items-center gap-1.5">
-                                <Sparkles className="w-3.5 h-3.5 text-blue-600" />
-                                <span>Courier Dispatch Tracking</span>
-                              </span>
-                              <span className="text-slate-500 font-mono text-[11px] font-normal">
-                                Est. Delivery: <strong className="text-slate-800">{order.estimatedDelivery || '2-4 Business Days'}</strong>
-                              </span>
+                      {/* Tax Financial Summary Footer */}
+                      <div className="bg-slate-50 p-4 border-t border-slate-200 space-y-2 text-xs">
+                        <div className="flex justify-between text-slate-600">
+                          <span>Subtotal (Excl. Tax)</span>
+                          <span className="font-mono font-bold">₹{(selectedOrder.totalAmount - selectedOrder.gstAmount).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-600">
+                          <span>GST Input Credit Tax (18%)</span>
+                          <span className="font-mono font-bold text-blue-700">₹{selectedOrder.gstAmount.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-600">
+                          <span>Courier Shipping & Insurance</span>
+                          <span className="font-mono font-bold text-emerald-700">FREE</span>
+                        </div>
+                        <div className="flex justify-between text-sm font-black text-slate-900 pt-2 border-t border-slate-200">
+                          <span>Grand Total Amount</span>
+                          <span className="font-mono text-base text-blue-600">₹{selectedOrder.totalAmount.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Delivery & Billing Entities */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2 shadow-xs">
+                      <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                        <MapPin className="w-4 h-4 text-blue-600" />
+                        <h4 className="text-xs font-extrabold text-slate-900 uppercase font-mono">Shipping Location</h4>
+                      </div>
+                      <p className="font-extrabold text-slate-900 text-sm">{selectedOrder.shippingAddress?.fullName}</p>
+                      {selectedOrder.shippingAddress?.companyName && (
+                        <p className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                          <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                          <span>{selectedOrder.shippingAddress.companyName}</span>
+                        </p>
+                      )}
+                      <p className="text-xs text-slate-600 leading-relaxed">
+                        {selectedOrder.shippingAddress?.houseBuilding}, {selectedOrder.shippingAddress?.streetArea}, {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} - <strong className="font-mono">{selectedOrder.shippingAddress?.pincode}</strong>
+                      </p>
+                      <p className="text-xs text-slate-500 font-mono pt-1">Contact: {selectedOrder.shippingAddress?.phone}</p>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-white border border-slate-200 space-y-2 shadow-xs">
+                      <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+                        <Receipt className="w-4 h-4 text-blue-600" />
+                        <h4 className="text-xs font-extrabold text-slate-900 uppercase font-mono">Billing & B2B GSTIN</h4>
+                      </div>
+                      {selectedOrder.shippingAddress?.isBillingSame === false && selectedOrder.shippingAddress.billingAddress ? (
+                        <>
+                          <p className="font-extrabold text-slate-900 text-sm">{selectedOrder.shippingAddress.billingAddress.fullName}</p>
+                          {selectedOrder.shippingAddress.billingAddress.companyName && (
+                            <p className="text-xs font-semibold text-slate-700">{selectedOrder.shippingAddress.billingAddress.companyName}</p>
+                          )}
+                          {selectedOrder.shippingAddress.billingAddress.gstin && (
+                            <span className="inline-block px-2 py-0.5 rounded font-mono text-xs font-extrabold bg-blue-50 text-blue-700 border border-blue-200">
+                              GSTIN: {selectedOrder.shippingAddress.billingAddress.gstin}
+                            </span>
+                          )}
+                          <p className="text-xs text-slate-600 leading-relaxed">
+                            {selectedOrder.shippingAddress.billingAddress.houseBuilding}, {selectedOrder.shippingAddress.billingAddress.streetArea}, {selectedOrder.shippingAddress.billingAddress.city} - {selectedOrder.shippingAddress.billingAddress.pincode}
+                          </p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-xs text-slate-700 font-bold">Same as Shipping Location</p>
+                          {selectedOrder.shippingAddress?.gstin && (
+                            <span className="inline-block px-2.5 py-1 rounded-lg font-mono text-xs font-extrabold bg-blue-50 text-blue-700 border border-blue-200 mt-1">
+                              GSTIN: {selectedOrder.shippingAddress.gstin}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* ORDERS LIST VIEW */
+                <div className="space-y-6">
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-slate-200">
+                    <div>
+                      <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                        <Package className="w-5 h-5 text-blue-600" />
+                        <span>My Orders & Dispatch Trackers</span>
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        Track courier dispatches, view purchased hardware items, and print GST invoices.
+                      </p>
+                    </div>
+
+                    {orders.length > 0 && (
+                      <div className="relative w-full sm:w-64">
+                        <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          placeholder="Search by order ID or item..."
+                          value={orderSearchQuery}
+                          onChange={(e) => setOrderSearchQuery(e.target.value)}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-blue-500"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {filteredOrders.length === 0 ? (
+                    <div className="py-20 text-center space-y-4">
+                      <div className="w-20 h-20 rounded-3xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                        <Package className="w-10 h-10 text-slate-400" />
+                      </div>
+                      <div className="space-y-1 max-w-sm mx-auto">
+                        <h3 className="text-base font-extrabold text-slate-800">
+                          {orders.length === 0 ? 'No orders placed yet' : 'No matching orders'}
+                        </h3>
+                        <p className="text-xs text-slate-500">
+                          {orders.length === 0 
+                            ? 'Browse our store for microcontrollers, sensors, development kits, and prototyping modules to place your first order.'
+                            : 'Try searching with different keywords.'}
+                        </p>
+                      </div>
+                      {onNavigateToStore && (
+                        <button
+                          onClick={onNavigateToStore}
+                          className="px-5 py-2.5 rounded-xl bg-blue-600 text-white font-bold text-xs hover:bg-blue-700 transition-colors shadow-sm inline-flex items-center gap-2 cursor-pointer"
+                        >
+                          <Package className="w-4 h-4" />
+                          <span>Explore Hardware Store</span>
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-6">
+                      {filteredOrders.map((order) => {
+                        const currentStep = getOrderStatusStep(order.orderStatus);
+                        return (
+                          <div
+                            key={order.id}
+                            className="p-5 rounded-2xl border border-slate-200 bg-white hover:border-blue-300 transition-all shadow-xs space-y-4 cursor-pointer group"
+                            onClick={() => setSelectedOrder(order)}
+                          >
+                            {/* Order Summary Bar */}
+                            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 text-xs font-mono">
+                              <div>
+                                <span className="text-[10px] text-slate-400 block font-sans uppercase font-bold">ORDER NUMBER</span>
+                                <div className="flex items-center gap-1.5 font-black text-blue-600 text-sm">
+                                  <span>#{order.id}</span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleCopyOrderId(order.id);
+                                    }}
+                                    title="Copy Order ID"
+                                    className="p-1 rounded text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                  >
+                                    {copiedOrderId === order.id ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div>
+                                <span className="text-[10px] text-slate-400 block font-sans uppercase font-bold">PLACED ON</span>
+                                <span className="font-bold text-slate-800">
+                                  {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })}
+                                </span>
+                              </div>
+
+                              <div>
+                                <span className="text-[10px] text-slate-400 block font-sans uppercase font-bold">PAYMENT STATUS</span>
+                                <span className="font-bold text-slate-700">
+                                  {order.paymentMethod} • <span className={order.paymentStatus === 'Cancelled' || order.paymentStatus === 'Refund Pending' ? 'text-red-700 font-bold' : 'text-emerald-700'}>{order.paymentStatus}</span>
+                                </span>
+                              </div>
+
+                              <div>
+                                <span className="text-[10px] text-slate-400 block font-sans uppercase font-bold">TOTAL AMOUNT</span>
+                                <span className="font-black text-slate-900 text-base">₹{order.totalAmount.toLocaleString()}</span>
+                              </div>
+
+                              <div>
+                                <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border ${
+                                  order.orderStatus === 'Cancelled'
+                                    ? 'bg-red-50 text-red-800 border-red-200'
+                                    : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                                }`}>
+                                  {order.orderStatus}
+                                </span>
+                              </div>
                             </div>
 
-                            <div className="grid grid-cols-4 gap-1.5 text-center pt-1">
-                              {[
-                                { title: 'Order Placed', step: 1 },
-                                { title: 'Processing', step: 2 },
-                                { title: 'Shipped', step: 3 },
-                                { title: 'Delivered', step: 4 },
-                              ].map((st) => (
-                                <div key={st.step} className="space-y-1">
-                                  <div className={`h-2 rounded-full transition-all ${
-                                    currentStep >= st.step ? 'bg-blue-600' : 'bg-slate-200'
-                                  }`} />
-                                  <span className={`text-[10px] font-extrabold block ${
-                                    currentStep >= st.step ? 'text-blue-700' : 'text-slate-400'
-                                  }`}>
-                                    {st.title}
+                            {/* Hardware Line Items Preview */}
+                            <div className="space-y-2 pt-1">
+                              {order.items.map((it, idx) => (
+                                <div key={idx} className="flex items-center justify-between gap-3 text-xs p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <img
+                                      src={it.image}
+                                      alt={it.productName}
+                                      className="w-12 h-12 rounded-lg object-cover bg-white border border-slate-200 shrink-0"
+                                    />
+                                    <div className="min-w-0">
+                                      <p className="font-bold text-slate-900 truncate">{it.productName}</p>
+                                      <p className="text-[11px] font-mono text-slate-500">
+                                        SKU: {it.sku} • Qty: <strong className="text-slate-800">{it.quantity}</strong> × ₹{it.price}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <span className="font-mono font-bold text-slate-900 shrink-0 text-sm">
+                                    ₹{(it.price * it.quantity).toLocaleString()}
                                   </span>
                                 </div>
                               ))}
                             </div>
 
-                            {/* Courier AWB & Tracking Link details from Admin */}
-                            {(order.courierPartner || order.trackingNumber || order.adminDispatchNotes) && (
-                              <div className="pt-2 border-t border-slate-200/80 text-xs space-y-1.5 bg-white p-2.5 rounded-lg border border-slate-200">
-                                <div className="flex flex-wrap items-center justify-between gap-2">
-                                  <div>
-                                    <span className="text-[10px] font-bold text-slate-400 font-mono uppercase block">Courier Partner & AWB Tracking</span>
-                                    <p className="font-bold text-slate-900 flex items-center gap-2">
-                                      <span>{order.courierPartner || 'Express Air Courier'}</span>
-                                      {order.trackingNumber && (
-                                        <span className="font-mono text-blue-700 bg-blue-50 px-2 py-0.5 rounded border border-blue-200 text-[11px]">
-                                          AWB: {order.trackingNumber}
-                                        </span>
-                                      )}
-                                    </p>
-                                  </div>
+                            {/* Card Footer Action Bar */}
+                            <div className="pt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100">
+                              <div className="text-xs text-slate-500">
+                                GST Included (18%): <strong className="font-mono text-slate-900">₹{order.gstAmount.toLocaleString()}</strong>
+                              </div>
 
-                                  {order.courierTrackingUrl && (
-                                    <a
-                                      href={order.courierTrackingUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="px-3 py-1 rounded-lg bg-blue-600 text-white hover:bg-blue-700 font-bold text-[11px] flex items-center gap-1 transition-colors"
-                                    >
-                                      <span>Track Package</span>
-                                      <ExternalLink className="w-3 h-3" />
-                                    </a>
-                                  )}
-                                </div>
-
-                                {order.adminDispatchNotes && (
-                                  <p className="text-[11px] text-slate-600 italic bg-slate-50 p-2 rounded border border-slate-200/60">
-                                    <strong>Warehouse Dispatch Note:</strong> {order.adminDispatchNotes}
-                                  </p>
+                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                {canCancelOrder(order.orderStatus) && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOrderToCancel(order);
+                                      setCancelReason('Ordered by mistake');
+                                    }}
+                                    className="px-3.5 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
+                                  >
+                                    <Ban className="w-3.5 h-3.5 text-red-600" />
+                                    <span>Cancel Order</span>
+                                  </button>
                                 )}
+                                <button
+                                  onClick={() => setSelectedOrder(order)}
+                                  className="px-3.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold flex items-center gap-1.5 text-xs transition-colors cursor-pointer shadow-xs"
+                                >
+                                  <span>View Full Specification & Invoice</span>
+                                  <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
                               </div>
-                            )}
-                          </div>
-
-                          {/* Hardware Line Items */}
-                          <div className="space-y-2 pt-1">
-                            {order.items.map((it, idx) => (
-                              <div key={idx} className="flex items-center justify-between gap-3 text-xs p-3 rounded-xl bg-slate-50/80 border border-slate-200/80">
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <img
-                                    src={it.image}
-                                    alt={it.productName}
-                                    className="w-12 h-12 rounded-lg object-cover bg-white border border-slate-200 shrink-0"
-                                  />
-                                  <div className="min-w-0">
-                                    <p className="font-bold text-slate-900 truncate">{it.productName}</p>
-                                    <p className="text-[11px] font-mono text-slate-500">
-                                      SKU: {it.sku} • Qty: <strong className="text-slate-800">{it.quantity}</strong> × ₹{it.price}
-                                    </p>
-                                  </div>
-                                </div>
-                                <span className="font-mono font-bold text-slate-900 shrink-0 text-sm">
-                                  ₹{(it.price * it.quantity).toLocaleString()}
-                                </span>
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* Delivery Location & Separate Billing Entity Details */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs">
-                            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1">
-                              <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block font-mono">
-                                Delivery Address
-                              </span>
-                              <p className="font-bold text-slate-900">{order.shippingAddress?.fullName}</p>
-                              {order.shippingAddress?.companyName && (
-                                <p className="text-slate-700 font-semibold text-[11px] flex items-center gap-1">
-                                  <Building2 className="w-3 h-3 text-blue-600" />
-                                  <span>{order.shippingAddress.companyName}</span>
-                                </p>
-                              )}
-                              <p className="text-slate-600 text-[11px]">
-                                {order.shippingAddress?.houseBuilding}, {order.shippingAddress?.streetArea}, {order.shippingAddress?.city}, {order.shippingAddress?.state} - {order.shippingAddress?.pincode}
-                              </p>
-                              <p className="text-slate-500 font-mono text-[10px]">Ph: {order.shippingAddress?.phone}</p>
-                            </div>
-
-                            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/90 space-y-1">
-                              <span className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider block font-mono">
-                                Billing Address & GST Details
-                              </span>
-                              {order.shippingAddress?.isBillingSame === false && order.shippingAddress.billingAddress ? (
-                                <>
-                                  <p className="font-bold text-slate-900">{order.shippingAddress.billingAddress.fullName}</p>
-                                  {order.shippingAddress.billingAddress.companyName && (
-                                    <p className="text-slate-700 font-semibold text-[11px] flex items-center gap-1">
-                                      <Building2 className="w-3 h-3 text-blue-600" />
-                                      <span>{order.shippingAddress.billingAddress.companyName}</span>
-                                    </p>
-                                  )}
-                                  {order.shippingAddress.billingAddress.gstin && (
-                                    <p className="text-blue-700 font-mono font-bold text-[11px]">
-                                      GSTIN: {order.shippingAddress.billingAddress.gstin}
-                                    </p>
-                                  )}
-                                  <p className="text-slate-600 text-[11px]">
-                                    {order.shippingAddress.billingAddress.houseBuilding}, {order.shippingAddress.billingAddress.streetArea}, {order.shippingAddress.billingAddress.city} - {order.shippingAddress.billingAddress.pincode}
-                                  </p>
-                                </>
-                              ) : (
-                                <>
-                                  <p className="font-bold text-slate-800">Same as Delivery Location</p>
-                                  {order.shippingAddress?.gstin && (
-                                    <p className="text-blue-700 font-mono font-bold text-[11px] mt-1">
-                                      GSTIN: {order.shippingAddress.gstin}
-                                    </p>
-                                  )}
-                                </>
-                              )}
                             </div>
                           </div>
-
-                          {/* Print Invoice & GST Action Bar */}
-                          <div className="pt-3 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100">
-                            <div className="text-xs text-slate-500">
-                              GST Included (18%): <strong className="font-mono text-slate-900">₹{order.gstAmount.toLocaleString()}</strong>
-                            </div>
-
-                            <button
-                              onClick={() => window.print()}
-                              className="px-3.5 py-1.5 rounded-xl bg-slate-900 text-white hover:bg-slate-800 font-bold flex items-center gap-1.5 text-xs transition-colors cursor-pointer shadow-xs"
-                            >
-                              <Printer className="w-3.5 h-3.5 text-blue-400" />
-                              <span>Print Official GST Invoice</span>
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
             )}
 
             {/* VIEW 2: SAVED ADDRESSES */}
@@ -1417,6 +1669,59 @@ export const AccountPage: React.FC<AccountPageProps> = ({
           </div>
 
         </div>
+
+      {/* Cancellation Confirmation Modal Overlay */}
+      {orderToCancel && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="p-2.5 rounded-2xl bg-red-50 border border-red-200 shrink-0">
+                <Ban className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">Cancel Order #{orderToCancel.id}?</h3>
+                <p className="text-xs text-slate-500 font-mono font-bold">Total Amount: ₹{orderToCancel.totalAmount.toLocaleString()}</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Are you sure you want to cancel this hardware order? Once cancelled, dispatch will be halted. If payment was completed, a refund request will be logged automatically.
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 block font-mono">Cancellation Reason:</label>
+              <select
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:border-red-500"
+              >
+                <option value="Ordered by mistake">Ordered by mistake</option>
+                <option value="Found lower price elsewhere">Found lower price elsewhere</option>
+                <option value="Incorrect shipping address selected">Incorrect shipping address selected</option>
+                <option value="Change of project requirement">Change of project requirement</option>
+                <option value="Other">Other reason</option>
+              </select>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setOrderToCancel(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer border border-slate-200"
+              >
+                Keep Order
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCancelOrder}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs"
+              >
+                Confirm Cancellation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       </div>
     </div>

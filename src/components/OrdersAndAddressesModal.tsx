@@ -3,12 +3,13 @@ import {
   X, Package, MapPin, Printer, Plus, Trash2, Edit3, Clock, Truck, 
   ShieldCheck, ArrowRight, ExternalLink, ChevronRight, CheckCircle2,
   Building2, Receipt, User, Search, RefreshCw, FileText, Check, AlertCircle,
-  Copy
+  Copy, ArrowLeft, Box, Ban
 } from 'lucide-react';
 import { UserAddress, UserOrder, UserProfile, SeparateBillingAddress } from '../types';
 import { 
   getStoredUserAddresses, 
   getStoredUserOrders, 
+  updateStoredUserOrder,
   saveStoredUserAddress, 
   deleteStoredUserAddress,
   saveRegisteredUserProfile
@@ -32,10 +33,43 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
   // Sidebar Navigation State
   const [activeTab, setActiveTab] = useState<'orders' | 'addresses' | 'gstin' | 'profile'>('orders');
 
-  // Orders State
+  // Orders State & Selected Order Detailed View
   const [orders, setOrders] = useState<UserOrder[]>([]);
   const [orderSearchQuery, setOrderSearchQuery] = useState('');
   const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
+  const [selectedOrder, setSelectedOrder] = useState<UserOrder | null>(null);
+
+  // Cancellation Modal State
+  const [orderToCancel, setOrderToCancel] = useState<UserOrder | null>(null);
+  const [cancelReason, setCancelReason] = useState('Ordered by mistake');
+
+  const canCancelOrder = (status: string) => {
+    return status === 'Order Placed' || status === 'Processing';
+  };
+
+  const handleConfirmCancelOrder = () => {
+    if (!orderToCancel) return;
+
+    const updatedOrder: UserOrder = {
+      ...orderToCancel,
+      orderStatus: 'Cancelled',
+      paymentStatus: orderToCancel.paymentStatus === 'Paid' ? 'Refund Pending' : 'Cancelled',
+      adminDispatchNotes: `Cancelled by customer on ${new Date().toLocaleDateString('en-IN')}. Reason: ${cancelReason}`,
+    };
+
+    const updatedList = updateStoredUserOrder(updatedOrder);
+    if (userProfile?.id) {
+      setOrders(updatedList.filter((o) => o.userId === userProfile.id));
+    } else {
+      setOrders(updatedList);
+    }
+
+    if (selectedOrder && selectedOrder.id === orderToCancel.id) {
+      setSelectedOrder(updatedOrder);
+    }
+
+    setOrderToCancel(null);
+  };
 
   // Addresses State
   const [addresses, setAddresses] = useState<UserAddress[]>([]);
@@ -437,216 +471,432 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
 
             {/* TAB 1: MY ORDERS */}
             {activeTab === 'orders' && (
-              <div className="space-y-4">
-                {/* Search Bar */}
-                {orders.length > 0 && (
-                  <div className="relative">
-                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-                    <input
-                      type="text"
-                      placeholder="Search orders by Order ID or item title..."
-                      value={orderSearchQuery}
-                      onChange={(e) => setOrderSearchQuery(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                )}
+              selectedOrder ? (
+                /* DEDICATED FULL ORDER & INVOICE SPECIFICATION VIEW */
+                <div className="space-y-5 animate-fadeIn">
+                  {/* Top Header / Navigation Bar */}
+                  <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200">
+                    <button
+                      onClick={() => setSelectedOrder(null)}
+                      className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold transition-colors flex items-center gap-1.5 cursor-pointer border border-slate-200"
+                    >
+                      <ArrowLeft className="w-3.5 h-3.5 text-slate-600" />
+                      <span>Back to Orders List</span>
+                    </button>
 
-                {filteredOrders.length === 0 ? (
-                  <div className="py-16 text-center space-y-3">
-                    <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
-                      <Package className="w-8 h-8" />
-                    </div>
-                    <h4 className="text-sm font-extrabold text-slate-800">
-                      {orders.length === 0 ? 'No orders placed yet' : 'No matching orders found'}
-                    </h4>
-                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                      {orders.length === 0 
-                        ? 'When you purchase microcontrollers, dev boards, sensors, or prototyping parts, your orders & tax invoices will appear here.'
-                        : 'Try adjusting your search keywords.'}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-5">
-                    {filteredOrders.map((order) => {
-                      const currentStep = getOrderStatusStep(order.orderStatus);
-                      return (
-                        <div
-                          key={order.id}
-                          className="p-4 sm:p-5 rounded-2xl border border-slate-200 bg-white hover:border-slate-300 transition-all shadow-xs space-y-4"
+                    <div className="flex items-center gap-2">
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                        selectedOrder.orderStatus === 'Cancelled'
+                          ? 'bg-red-50 text-red-800 border-red-200'
+                          : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                      }`}>
+                        {selectedOrder.orderStatus}
+                      </span>
+                      {canCancelOrder(selectedOrder.orderStatus) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOrderToCancel(selectedOrder);
+                            setCancelReason('Ordered by mistake');
+                          }}
+                          className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer"
                         >
-                          {/* Order Header Summary */}
-                          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 text-xs font-mono">
-                            <div className="flex items-center gap-2">
-                              <div>
-                                <span className="text-[10px] text-slate-400 block font-sans uppercase font-bold">ORDER ID</span>
-                                <div className="flex items-center gap-1.5 font-extrabold text-blue-600">
-                                  <span>#{order.id}</span>
-                                  <button
-                                    onClick={() => handleCopyOrderId(order.id)}
-                                    title="Copy Order ID"
-                                    className="p-1 rounded text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
-                                  >
-                                    {copiedOrderId === order.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
-                                  </button>
+                          <Ban className="w-3.5 h-3.5 text-red-600" />
+                          <span>Cancel Order</span>
+                        </button>
+                      )}
+                      <button
+                        onClick={() => window.print()}
+                        className="px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs flex items-center gap-1.5 transition-colors cursor-pointer shadow-xs"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                        <span>Print Invoice</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Order ID Banner */}
+                  <div className="p-4 rounded-2xl bg-slate-900 text-white flex flex-wrap items-center justify-between gap-3 shadow-sm">
+                    <div>
+                      <span className="text-[10px] font-mono uppercase text-blue-400 font-bold block">ORDER ID</span>
+                      <h3 className="text-lg font-black font-mono text-white flex items-center gap-2">
+                        <span>#{selectedOrder.id}</span>
+                        <button
+                          onClick={() => handleCopyOrderId(selectedOrder.id)}
+                          className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+                          title="Copy Order ID"
+                        >
+                          {copiedOrderId === selectedOrder.id ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                        </button>
+                      </h3>
+                    </div>
+
+                    <div className="text-right">
+                      <span className="text-[10px] font-mono uppercase text-slate-400 font-bold block">DATE PLACED</span>
+                      <p className="text-xs font-bold text-slate-200">
+                        {new Date(selectedOrder.createdAt).toLocaleDateString('en-IN', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 4 Summary Cards */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block font-mono">Amount Paid</span>
+                      <p className="text-base font-black text-slate-900">₹{selectedOrder.totalAmount.toLocaleString()}</p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block font-mono">Payment Status</span>
+                      <p className="text-xs font-bold text-slate-900 mt-0.5">{selectedOrder.paymentMethod}</p>
+                      <span className="text-[10px] text-emerald-700 font-bold uppercase">{selectedOrder.paymentStatus}</span>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block font-mono">Est. Delivery</span>
+                      <p className="text-xs font-bold text-blue-700 mt-0.5">{selectedOrder.estimatedDelivery || '2-4 Days'}</p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
+                      <span className="text-[10px] text-slate-400 font-bold uppercase block font-mono">GST Credit</span>
+                      <p className="text-xs font-bold text-slate-900 mt-0.5">₹{selectedOrder.gstAmount.toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  {/* Courier & Delivery Status Tracking Section */}
+                  <div className="p-4 rounded-xl bg-blue-50/80 border border-blue-200 space-y-3 text-xs">
+                    <div className="flex flex-wrap items-center justify-between gap-2 pb-2 border-b border-blue-200/80">
+                      <div className="flex items-center gap-2">
+                        <Truck className="w-4 h-4 text-blue-600" />
+                        <span className="font-extrabold text-blue-950 uppercase tracking-wide">Live Delivery & Dispatch Status</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider text-white ${
+                          selectedOrder.orderStatus === 'Cancelled' ? 'bg-red-600' : 'bg-blue-600'
+                        }`}>
+                          {selectedOrder.orderStatus}
+                        </span>
+                        {selectedOrder.courierTrackingUrl && (
+                          <a
+                            href={selectedOrder.courierTrackingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1 rounded-lg bg-slate-900 text-white font-bold text-[11px] hover:bg-slate-800 transition-colors flex items-center gap-1 cursor-pointer"
+                          >
+                            <span>Live Track</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Visual 4-Step Delivery Progress Stepper */}
+                    <div className="bg-white p-3 rounded-lg border border-blue-200/80 space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-800">
+                        <span>Delivery Stage</span>
+                        <span className="text-slate-500 font-mono font-normal">
+                          Est. Delivery: <strong className="text-blue-700">{selectedOrder.estimatedDelivery || '2-4 Business Days'}</strong>
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-4 gap-1.5 text-center pt-1">
+                        {[
+                          { title: 'Order Placed', step: 1 },
+                          { title: 'Processing', step: 2 },
+                          { title: 'Shipped', step: 3 },
+                          { title: 'Delivered', step: 4 },
+                        ].map((st) => {
+                          const currentStep = getOrderStatusStep(selectedOrder.orderStatus);
+                          const isDone = currentStep >= st.step;
+                          return (
+                            <div key={st.step} className="space-y-1">
+                              <div className={`h-2 rounded-full transition-all ${
+                                isDone ? 'bg-blue-600' : 'bg-slate-200'
+                              }`} />
+                              <span className={`text-[10px] font-extrabold block ${
+                                isDone ? 'text-blue-700' : 'text-slate-400'
+                              }`}>
+                                {st.title}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-mono uppercase block font-bold">Courier Partner</span>
+                        <p className="font-bold text-slate-900">{selectedOrder.courierPartner || 'Express Air Courier'}</p>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-mono uppercase block font-bold">AWB Tracking Number</span>
+                        <p className="font-mono font-bold text-blue-700">
+                          {selectedOrder.trackingNumber || 'Pending Courier Scan'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {selectedOrder.adminDispatchNotes && (
+                      <p className="text-[11px] text-slate-700 italic bg-white p-2 rounded-lg border border-blue-200">
+                        <strong>Dispatch Note:</strong> {selectedOrder.adminDispatchNotes}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Itemized Products */}
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5 uppercase font-mono">
+                      <Box className="w-3.5 h-3.5 text-blue-600" />
+                      <span>Purchased Items ({selectedOrder.items.length})</span>
+                    </h4>
+
+                    <div className="border border-slate-200 rounded-xl overflow-hidden bg-white">
+                      <div className="divide-y divide-slate-100">
+                        {selectedOrder.items.map((item, idx) => (
+                          <div key={idx} className="p-3 flex items-center justify-between gap-3 text-xs">
+                            <div className="flex items-center gap-3 min-w-0">
+                              <img
+                                src={item.image}
+                                alt={item.productName}
+                                className="w-11 h-11 rounded-lg object-cover border border-slate-200 bg-white shrink-0"
+                              />
+                              <div className="min-w-0">
+                                <p className="font-bold text-slate-900 truncate">{item.productName}</p>
+                                <p className="text-[10px] font-mono text-slate-500">
+                                  SKU: {item.sku} • Qty: <strong className="text-slate-800">{item.quantity}</strong> × ₹{item.price}
+                                </p>
+                              </div>
+                            </div>
+                            <span className="font-mono font-bold text-slate-900 shrink-0">
+                              ₹{(item.price * item.quantity).toLocaleString()}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="bg-slate-50 p-3 border-t border-slate-200 space-y-1.5 text-xs font-mono">
+                        <div className="flex justify-between text-slate-600">
+                          <span>Subtotal</span>
+                          <span>₹{(selectedOrder.totalAmount - selectedOrder.gstAmount).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-600">
+                          <span>GST (18%)</span>
+                          <span className="text-blue-700 font-bold">₹{selectedOrder.gstAmount.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between font-black text-slate-900 pt-1.5 border-t border-slate-200 text-sm">
+                          <span>Total Amount</span>
+                          <span className="text-blue-600">₹{selectedOrder.totalAmount.toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Address Summary */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-mono">Shipping Address</span>
+                      <p className="font-bold text-slate-900">{selectedOrder.shippingAddress?.fullName}</p>
+                      {selectedOrder.shippingAddress?.companyName && (
+                        <p className="text-slate-700 font-semibold">{selectedOrder.shippingAddress.companyName}</p>
+                      )}
+                      <p className="text-slate-600 text-[11px]">
+                        {selectedOrder.shippingAddress?.houseBuilding}, {selectedOrder.shippingAddress?.streetArea}, {selectedOrder.shippingAddress?.city}, {selectedOrder.shippingAddress?.state} - {selectedOrder.shippingAddress?.pincode}
+                      </p>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-mono">Billing Address & GST</span>
+                      {selectedOrder.shippingAddress?.isBillingSame === false && selectedOrder.shippingAddress.billingAddress ? (
+                        <>
+                          <p className="font-bold text-slate-900">{selectedOrder.shippingAddress.billingAddress.fullName}</p>
+                          {selectedOrder.shippingAddress.billingAddress.companyName && (
+                            <p className="text-slate-700 font-semibold">{selectedOrder.shippingAddress.billingAddress.companyName}</p>
+                          )}
+                          {selectedOrder.shippingAddress.billingAddress.gstin && (
+                            <p className="text-blue-700 font-mono font-bold text-[10px]">
+                              GSTIN: {selectedOrder.shippingAddress.billingAddress.gstin}
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <p className="font-semibold text-slate-800">Same as Shipping Address</p>
+                          {selectedOrder.shippingAddress?.gstin && (
+                            <p className="text-blue-700 font-mono font-bold text-[11px]">
+                              GSTIN: {selectedOrder.shippingAddress.gstin}
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* ORDERS LIST VIEW */
+                <div className="space-y-4">
+                  {/* Search Bar */}
+                  {orders.length > 0 && (
+                    <div className="relative">
+                      <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                      <input
+                        type="text"
+                        placeholder="Search orders by Order ID or item title..."
+                        value={orderSearchQuery}
+                        onChange={(e) => setOrderSearchQuery(e.target.value)}
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2 text-xs font-medium text-slate-800 focus:bg-white focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  )}
+
+                  {filteredOrders.length === 0 ? (
+                    <div className="py-16 text-center space-y-3">
+                      <div className="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto text-slate-400">
+                        <Package className="w-8 h-8" />
+                      </div>
+                      <h4 className="text-sm font-extrabold text-slate-800">
+                        {orders.length === 0 ? 'No orders placed yet' : 'No matching orders found'}
+                      </h4>
+                      <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                        {orders.length === 0 
+                          ? 'When you purchase microcontrollers, dev boards, sensors, or prototyping parts, your orders & tax invoices will appear here.'
+                          : 'Try adjusting your search keywords.'}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {filteredOrders.map((order) => {
+                        const currentStep = getOrderStatusStep(order.orderStatus);
+                        return (
+                          <div
+                            key={order.id}
+                            className="p-4 sm:p-5 rounded-2xl border border-slate-200 bg-white hover:border-blue-300 transition-all shadow-xs space-y-4 cursor-pointer"
+                            onClick={() => setSelectedOrder(order)}
+                          >
+                            {/* Order Header Summary */}
+                            <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100 text-xs font-mono">
+                              <div className="flex items-center gap-2">
+                                <div>
+                                  <span className="text-[10px] text-slate-400 block font-sans uppercase font-bold">ORDER ID</span>
+                                  <div className="flex items-center gap-1.5 font-extrabold text-blue-600">
+                                    <span>#{order.id}</span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleCopyOrderId(order.id);
+                                      }}
+                                      title="Copy Order ID"
+                                      className="p-1 rounded text-slate-400 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+                                    >
+                                      {copiedOrderId === order.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                                    </button>
+                                  </div>
                                 </div>
+                              </div>
+
+                              <div>
+                                <span className="text-[10px] text-slate-400 block font-sans uppercase font-bold">DATE</span>
+                                <span className="font-bold text-slate-800">
+                                  {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                                    day: '2-digit',
+                                    month: 'short',
+                                    year: 'numeric',
+                                  })}
+                                </span>
+                              </div>
+
+                              <div>
+                                <span className="text-[10px] text-slate-400 block font-sans uppercase font-bold">PAYMENT</span>
+                                <span className={`font-bold ${
+                                  order.paymentStatus === 'Cancelled' || order.paymentStatus === 'Refund Pending' ? 'text-red-700' : 'text-slate-700'
+                                }`}>
+                                  {order.paymentMethod} ({order.paymentStatus})
+                                </span>
+                              </div>
+
+                              <div>
+                                <span className="text-[10px] text-slate-400 block font-sans uppercase font-bold">TOTAL AMOUNT</span>
+                                <span className="font-extrabold text-slate-900 text-sm">₹{order.totalAmount.toLocaleString()}</span>
+                              </div>
+
+                              <div>
+                                <span className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider border ${
+                                  order.orderStatus === 'Cancelled'
+                                    ? 'bg-red-50 text-red-800 border-red-200'
+                                    : 'bg-emerald-50 text-emerald-800 border-emerald-200/80'
+                                }`}>
+                                  {order.orderStatus}
+                                </span>
                               </div>
                             </div>
 
-                            <div>
-                              <span className="text-[10px] text-slate-400 block font-sans uppercase font-bold">DATE</span>
-                              <span className="font-bold text-slate-800">
-                                {new Date(order.createdAt).toLocaleDateString('en-IN', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                  year: 'numeric',
-                                })}
-                              </span>
-                            </div>
-
-                            <div>
-                              <span className="text-[10px] text-slate-400 block font-sans uppercase font-bold">PAYMENT</span>
-                              <span className="font-bold text-slate-700">
-                                {order.paymentMethod} ({order.paymentStatus})
-                              </span>
-                            </div>
-
-                            <div>
-                              <span className="text-[10px] text-slate-400 block font-sans uppercase font-bold">TOTAL AMOUNT</span>
-                              <span className="font-extrabold text-slate-900 text-sm">₹{order.totalAmount.toLocaleString()}</span>
-                            </div>
-
-                            <div>
-                              <span className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200/80">
-                                {order.orderStatus}
-                              </span>
-                            </div>
-                          </div>
-
-                          {/* Courier Timeline Step Tracker */}
-                          <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 space-y-2">
-                            <div className="flex items-center justify-between text-[11px] font-bold text-slate-700">
-                              <span>Courier Dispatch Progress</span>
-                              <span className="text-slate-500 font-mono font-normal">
-                                Est. Delivery: {order.estimatedDelivery || '2-4 Business Days'}
-                              </span>
-                            </div>
-
-                            <div className="grid grid-cols-4 gap-1 text-center pt-1">
-                              {[
-                                { title: 'Placed', step: 1 },
-                                { title: 'Processing', step: 2 },
-                                { title: 'Shipped', step: 3 },
-                                { title: 'Delivered', step: 4 },
-                              ].map((st) => (
-                                <div key={st.step} className="space-y-1">
-                                  <div className={`h-1.5 rounded-full transition-all ${
-                                    currentStep >= st.step ? 'bg-blue-600' : 'bg-slate-200'
-                                  }`} />
-                                  <span className={`text-[10px] font-bold block ${
-                                    currentStep >= st.step ? 'text-blue-700' : 'text-slate-400'
-                                  }`}>
-                                    {st.title}
+                            {/* Purchased Line Items */}
+                            <div className="space-y-2 pt-1">
+                              {order.items.map((it, idx) => (
+                                <div key={idx} className="flex items-center justify-between gap-3 text-xs p-2 rounded-xl bg-slate-50/60 border border-slate-100">
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <img
+                                      src={it.image}
+                                      alt={it.productName}
+                                      className="w-12 h-12 rounded-lg object-cover bg-white border border-slate-200 shrink-0"
+                                    />
+                                    <div className="min-w-0">
+                                      <p className="font-bold text-slate-900 truncate">{it.productName}</p>
+                                      <p className="text-[10px] font-mono text-slate-500">
+                                        SKU: {it.sku} • Qty: <span className="font-bold text-slate-800">{it.quantity}</span> × ₹{it.price}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <span className="font-mono font-bold text-slate-900 shrink-0">
+                                    ₹{(it.price * it.quantity).toLocaleString()}
                                   </span>
                                 </div>
                               ))}
                             </div>
-                          </div>
 
-                          {/* Purchased Line Items */}
-                          <div className="space-y-2.5 pt-1">
-                            {order.items.map((it, idx) => (
-                              <div key={idx} className="flex items-center justify-between gap-3 text-xs p-2 rounded-xl bg-slate-50/60 border border-slate-100">
-                                <div className="flex items-center gap-3 min-w-0">
-                                  <img
-                                    src={it.image}
-                                    alt={it.productName}
-                                    className="w-12 h-12 rounded-lg object-cover bg-white border border-slate-200 shrink-0"
-                                  />
-                                  <div className="min-w-0">
-                                    <p className="font-bold text-slate-900 truncate">{it.productName}</p>
-                                    <p className="text-[10px] font-mono text-slate-500">
-                                      SKU: {it.sku} • Qty: <span className="font-bold text-slate-800">{it.quantity}</span> × ₹{it.price}
-                                    </p>
-                                  </div>
-                                </div>
-                                <span className="font-mono font-bold text-slate-900 shrink-0">
-                                  ₹{(it.price * it.quantity).toLocaleString()}
-                                </span>
+                            {/* Footer Action Buttons */}
+                            <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100">
+                              <div className="text-[11px] text-slate-500">
+                                GST Included: <span className="font-mono font-bold text-slate-800">₹{order.gstAmount.toLocaleString()}</span>
                               </div>
-                            ))}
-                          </div>
 
-                          {/* Address Summary (Delivery & Separate Billing if present) */}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 text-xs border-t border-slate-100">
-                            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
-                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-mono">
-                                Shipping Address
-                              </span>
-                              <p className="font-bold text-slate-900 mt-0.5">{order.shippingAddress?.fullName}</p>
-                              {order.shippingAddress?.companyName && (
-                                <p className="text-slate-700 font-semibold">{order.shippingAddress.companyName}</p>
-                              )}
-                              <p className="text-slate-600 text-[11px]">
-                                {order.shippingAddress?.houseBuilding}, {order.shippingAddress?.streetArea}, {order.shippingAddress?.city}, {order.shippingAddress?.state} - {order.shippingAddress?.pincode}
-                              </p>
-                              <p className="text-slate-500 font-mono text-[10px] mt-1">Ph: {order.shippingAddress?.phone}</p>
-                            </div>
-
-                            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200/80">
-                              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block font-mono">
-                                Billing & Tax Details
-                              </span>
-                              {order.shippingAddress?.isBillingSame === false && order.shippingAddress.billingAddress ? (
-                                <>
-                                  <p className="font-bold text-slate-900 mt-0.5">{order.shippingAddress.billingAddress.fullName}</p>
-                                  {order.shippingAddress.billingAddress.companyName && (
-                                    <p className="text-slate-700 font-semibold">{order.shippingAddress.billingAddress.companyName}</p>
-                                  )}
-                                  {order.shippingAddress.billingAddress.gstin && (
-                                    <p className="text-blue-700 font-mono font-bold text-[10px]">
-                                      GSTIN: {order.shippingAddress.billingAddress.gstin}
-                                    </p>
-                                  )}
-                                  <p className="text-slate-600 text-[11px]">
-                                    {order.shippingAddress.billingAddress.houseBuilding}, {order.shippingAddress.billingAddress.streetArea}, {order.shippingAddress.billingAddress.city} - {order.shippingAddress.billingAddress.pincode}
-                                  </p>
-                                </>
-                              ) : (
-                                <>
-                                  <p className="font-semibold text-slate-800 mt-0.5">Same as Shipping Address</p>
-                                  {order.shippingAddress?.gstin && (
-                                    <p className="text-blue-700 font-mono font-bold text-[11px] mt-1">
-                                      GSTIN: {order.shippingAddress.gstin}
-                                    </p>
-                                  )}
-                                </>
-                              )}
+                              <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                {canCancelOrder(order.orderStatus) && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setOrderToCancel(order);
+                                      setCancelReason('Ordered by mistake');
+                                    }}
+                                    className="px-3 py-1.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 font-bold flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
+                                  >
+                                    <Ban className="w-3.5 h-3.5 text-red-600" />
+                                    <span>Cancel Order</span>
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => setSelectedOrder(order)}
+                                  className="px-3 py-1.5 rounded-xl bg-blue-600 text-white font-bold flex items-center gap-1.5 text-xs hover:bg-blue-700 transition-colors cursor-pointer shadow-xs"
+                                >
+                                  <span>View Order Specification & Invoice</span>
+                                  <ChevronRight className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
                             </div>
                           </div>
-
-                          {/* Footer Action Buttons */}
-                          <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-slate-100">
-                            <div className="text-[11px] text-slate-500">
-                              GST Included: <span className="font-mono font-bold text-slate-800">₹{order.gstAmount.toLocaleString()}</span>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              <button
-                                onClick={() => window.print()}
-                                className="px-3 py-1.5 rounded-xl bg-white border border-slate-200 text-slate-700 hover:bg-slate-100 font-bold flex items-center gap-1.5 text-xs transition-colors cursor-pointer"
-                              >
-                                <Printer className="w-3.5 h-3.5 text-slate-500" />
-                                <span>Print Tax Invoice</span>
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )
             )}
 
             {/* TAB 2: SAVED ADDRESSES */}
@@ -1259,6 +1509,59 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
 
           </div>
         </div>
+
+      {/* Cancellation Confirmation Modal Overlay */}
+      {orderToCancel && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 space-y-4">
+            <div className="flex items-center gap-3 text-red-600">
+              <div className="p-2.5 rounded-2xl bg-red-50 border border-red-200 shrink-0">
+                <Ban className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-base font-extrabold text-slate-900">Cancel Order #{orderToCancel.id}?</h3>
+                <p className="text-xs text-slate-500 font-mono font-bold">Total Amount: ₹{orderToCancel.totalAmount.toLocaleString()}</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 leading-relaxed">
+              Are you sure you want to cancel this hardware order? Once cancelled, dispatch will be halted. If payment was completed, a refund request will be logged automatically.
+            </p>
+
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-slate-700 block font-mono">Cancellation Reason:</label>
+              <select
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-900 focus:outline-none focus:border-red-500"
+              >
+                <option value="Ordered by mistake">Ordered by mistake</option>
+                <option value="Found lower price elsewhere">Found lower price elsewhere</option>
+                <option value="Incorrect shipping address selected">Incorrect shipping address selected</option>
+                <option value="Change of project requirement">Change of project requirement</option>
+                <option value="Other">Other reason</option>
+              </select>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setOrderToCancel(null)}
+                className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs transition-colors cursor-pointer border border-slate-200"
+              >
+                Keep Order
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmCancelOrder}
+                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs transition-colors cursor-pointer shadow-xs"
+              >
+                Confirm Cancellation
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       </div>
     </div>
