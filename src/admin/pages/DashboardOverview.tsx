@@ -27,6 +27,13 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   const orders: UserOrder[] = useMemo(() => getStoredJobApplications ? getStoredUserOrders() : [], []);
   const jobApps: JobApplication[] = useMemo(() => getStoredJobApplications(), []);
 
+  // Filtered Alert Items for Store Inventory (Low stock <= 5 or Out of Stock) sorted by lowest stock first
+  const alertItems = useMemo(() => {
+    return storeItems
+      .filter((item) => item.stock <= 5 || !item.inStock)
+      .sort((a, b) => (a.stock || 0) - (b.stock || 0));
+  }, [storeItems]);
+
   // Filter States for Sales Graph & Analytics
   const currentYear = new Date().getFullYear();
   const [viewGranularity, setViewGranularity] = useState<'day' | 'month'>('day');
@@ -190,7 +197,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">System Performance & Insights</h1>
             <p className="text-slate-300 text-xs sm:text-sm mt-1 max-w-2xl leading-relaxed">
-              Real-time monitoring of orders, deliveries, revenue breakdown, inventory status, and recruitment pipelines.
+              Real-time monitoring of orders, deliveries, revenue breakdown, and inventory status.
             </p>
           </div>
 
@@ -202,19 +209,12 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
               <Truck className="w-4 h-4" />
               <span>Manage Deliveries ({stats.activeDeliveriesCount})</span>
             </button>
-            <button
-              onClick={() => setActiveTab('careers')}
-              className="px-4 py-2.5 rounded-2xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-white text-xs font-bold flex items-center gap-2 transition-all cursor-pointer"
-            >
-              <Briefcase className="w-4 h-4 text-blue-400" />
-              <span>Job Applications ({stats.pendingApplicants})</span>
-            </button>
           </div>
         </div>
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Net Revenue */}
         <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
@@ -290,24 +290,6 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <p className="text-xs text-red-600 mt-1 font-bold">
               Cancelled
             </p>
-          </div>
-        </div>
-
-        {/* Job Applicants Metrics */}
-        <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] font-bold text-slate-500 uppercase font-mono tracking-wider">Recruitment Pipeline</span>
-            <div className="p-2.5 rounded-2xl bg-indigo-50 text-indigo-600 border border-indigo-100">
-              <Briefcase className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="mt-3">
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight">{stats.totalApplicants} <span className="text-xs font-normal text-slate-400">Total</span></h3>
-            <div className="flex items-center gap-2 mt-1 text-[11px] font-medium text-slate-600">
-              <span className="text-amber-600 font-bold">{stats.pendingApplicants} Pending</span>
-              <span>•</span>
-              <span className="text-emerald-600 font-bold">{stats.shortlistedApplicants} Shortlisted</span>
-            </div>
           </div>
         </div>
       </div>
@@ -514,110 +496,126 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
         </div>
       </div>
 
-      {/* Two Column Layout: Recruitment Overview + Recent Orders */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Job Applications & Recruitment Overview */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4 flex flex-col">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div>
-              <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                <Briefcase className="w-4 h-4 text-blue-600" />
-                Job Applicants Breakdown
-              </h3>
-              <p className="text-xs text-slate-500">Overview of candidate applications by role</p>
-            </div>
-            <button
-              onClick={() => setActiveTab('careers')}
-              className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
-            >
-              <span>View All ({jobApps.length})</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {jobApps.length === 0 ? (
-            <div className="py-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-              <p className="text-xs text-slate-500 font-medium">No job applications submitted yet.</p>
-            </div>
-          ) : (
-            <div className="space-y-3 flex-1 overflow-y-auto max-h-[320px] pr-1">
-              {jobRoles.map((role) => {
-                const appsForRole = jobApps.filter((a) => a.jobId === role.id || a.jobTitle === role.title);
-                const count = appsForRole.length;
-                const shortlisted = appsForRole.filter((a) => a.status === 'Shortlisted' || a.status === 'Interview').length;
-
-                return (
-                  <div key={role.id} className="p-3.5 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200/80 flex items-center justify-between transition-colors">
-                    <div>
-                      <h4 className="text-xs font-extrabold text-slate-900">{role.title}</h4>
-                      <p className="text-[11px] text-slate-500 font-mono">{role.department} • {role.location}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="px-2.5 py-1 rounded-xl bg-blue-50 text-blue-700 border border-blue-200 text-[11px] font-black">
-                        {count} Applications
-                      </span>
-                      {shortlisted > 0 && (
-                        <span className="px-2 py-1 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold">
-                          {shortlisted} Shortlisted
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-
-        {/* Hardware Inventory & Store Stock Alerts */}
-        <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4 flex flex-col">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-            <div>
+      {/* Hardware Inventory & Store Stock Alerts */}
+      <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-xs space-y-4 flex flex-col">
+        <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
+          <div>
+            <div className="flex items-center gap-2">
               <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
                 <Cpu className="w-4 h-4 text-emerald-600" />
                 Store & Stock Inventory Alerts
               </h3>
-              <p className="text-xs text-slate-500">Monitored hardware items & stock levels</p>
+              {alertItems.length > 0 ? (
+                <span className="px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black">
+                  {alertItems.length} {alertItems.length === 1 ? 'Alert' : 'Alerts'}
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-900 border border-emerald-300 text-[10px] font-black">
+                  Optimal
+                </span>
+              )}
             </div>
+            <p className="text-xs text-slate-500 mt-0.5">Critical low-stock & out-of-stock hardware items needing replenishment</p>
+          </div>
+
+          <div className="flex items-center gap-2">
             <button
               onClick={() => setActiveTab('store')}
               className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1 transition-colors cursor-pointer"
             >
-              <span>Manage Store ({storeItems.length})</span>
+              <span>Manage Store ({stats.totalStoreItems.toLocaleString('en-IN')})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
+        </div>
 
-          <div className="space-y-3 flex-1 overflow-y-auto max-h-[320px] pr-1">
-            {storeItems.slice(0, 6).map((item) => (
-              <div key={item.id} className="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <img
-                    src={item.image}
-                    alt={item.name}
-                    className="w-10 h-10 object-cover rounded-xl border border-slate-200 shrink-0 bg-white"
-                  />
-                  <div>
-                    <h4 className="text-xs font-extrabold text-slate-900 line-clamp-1">{item.name}</h4>
-                    <p className="text-[11px] text-slate-500 font-mono">SKU: {item.sku} • ₹{item.price.toLocaleString('en-IN')}</p>
-                  </div>
-                </div>
-                <div>
-                  {item.stock <= 5 ? (
-                    <span className="px-2.5 py-1 rounded-xl bg-amber-50 text-amber-800 border border-amber-200 text-[10px] font-black flex items-center gap-1">
-                      <AlertTriangle className="w-3 h-3 text-amber-600" />
-                      Low ({item.stock})
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-1 rounded-xl bg-slate-100 text-slate-700 border border-slate-200 text-[10px] font-bold">
-                      In Stock ({item.stock})
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
+        {/* Inventory Summary Pills */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+          <div className="p-2.5 rounded-2xl bg-slate-50 border border-slate-200/80">
+            <span className="text-[10px] font-mono font-bold text-slate-400 uppercase block">Total SKUs</span>
+            <span className="text-sm font-black text-slate-900">{stats.totalStoreItems.toLocaleString('en-IN')}</span>
+          </div>
+
+          <div className="p-2.5 rounded-2xl bg-emerald-50/60 border border-emerald-200/60">
+            <span className="text-[10px] font-mono font-bold text-emerald-700 uppercase block">Healthy Stock</span>
+            <span className="text-sm font-black text-emerald-900">{Math.max(0, stats.totalStoreItems - alertItems.length).toLocaleString('en-IN')}</span>
+          </div>
+
+          <div className={`p-2.5 rounded-2xl border ${stats.lowStockCount > 0 ? 'bg-amber-50 border-amber-200/80' : 'bg-slate-50 border-slate-200/80'}`}>
+            <span className={`text-[10px] font-mono font-bold uppercase block ${stats.lowStockCount > 0 ? 'text-amber-800' : 'text-slate-400'}`}>Low Stock (≤5)</span>
+            <span className={`text-sm font-black ${stats.lowStockCount > 0 ? 'text-amber-950' : 'text-slate-900'}`}>{stats.lowStockCount}</span>
+          </div>
+
+          <div className={`p-2.5 rounded-2xl border ${stats.outOfStockCount > 0 ? 'bg-rose-50 border-rose-200/80' : 'bg-slate-50 border-slate-200/80'}`}>
+            <span className={`text-[10px] font-mono font-bold uppercase block ${stats.outOfStockCount > 0 ? 'text-rose-800' : 'text-slate-400'}`}>Out of Stock</span>
+            <span className={`text-sm font-black ${stats.outOfStockCount > 0 ? 'text-rose-950' : 'text-slate-900'}`}>{stats.outOfStockCount}</span>
           </div>
         </div>
+
+        {/* Filtered Alerts List or Success State */}
+        {alertItems.length === 0 ? (
+          <div className="p-5 bg-emerald-50/70 border border-emerald-200/80 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 rounded-2xl bg-emerald-100 text-emerald-700 shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-black text-emerald-950">All Hardware Stock Levels Are Healthy</h4>
+                <p className="text-[11px] text-emerald-800 mt-0.5">No low stock or out-of-stock items detected across all {stats.totalStoreItems.toLocaleString('en-IN')} catalog SKUs.</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setActiveTab('store')}
+              className="px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs transition-colors cursor-pointer shrink-0 shadow-2xs"
+            >
+              Browse Catalog
+            </button>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[260px] overflow-y-auto pr-1">
+              {alertItems.slice(0, 12).map((item) => (
+                <div key={item.id} className="p-3 bg-slate-50 hover:bg-slate-100/80 rounded-2xl border border-slate-200/80 flex items-center justify-between transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-10 h-10 object-cover rounded-xl border border-slate-200 shrink-0 bg-white"
+                    />
+                    <div className="min-w-0">
+                      <h4 className="text-xs font-extrabold text-slate-900 truncate">{item.name}</h4>
+                      <p className="text-[11px] text-slate-500 font-mono">SKU: {item.sku} • ₹{item.price.toLocaleString('en-IN')}</p>
+                    </div>
+                  </div>
+                  <div className="shrink-0 ml-2">
+                    {item.stock === 0 || !item.inStock ? (
+                      <span className="px-2 py-0.5 rounded-xl bg-rose-100 text-rose-900 border border-rose-300 text-[10px] font-black flex items-center gap-1">
+                        <XCircle className="w-3 h-3 text-rose-600" />
+                        Out of Stock
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-xl bg-amber-100 text-amber-900 border border-amber-300 text-[10px] font-black flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3 text-amber-600" />
+                        Low ({item.stock})
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-100 text-[11px] font-medium text-slate-500 gap-2">
+              <span>Showing top {Math.min(alertItems.length, 12)} critical alerts out of {alertItems.length} total inventory warnings</span>
+              <button
+                onClick={() => setActiveTab('store')}
+                className="text-blue-600 font-bold hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                <span>Manage Store Catalog ({stats.totalStoreItems.toLocaleString('en-IN')} SKUs)</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Recent Orders Preview Table */}
