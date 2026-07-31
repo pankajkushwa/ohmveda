@@ -710,7 +710,7 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
                           <input
                             type="text"
                             required
-                            placeholder="e.g. Rahul Sharma"
+                            placeholder="Rahul Sharma"
                             value={fullName}
                             onChange={(e) => setFullName(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-900 focus:outline-none focus:border-blue-500"
@@ -722,7 +722,7 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
                           <input
                             type="tel"
                             required
-                            placeholder="e.g. +91 9876543210"
+                            placeholder="+91 9876543210"
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-900 focus:outline-none focus:border-blue-500"
@@ -735,7 +735,7 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
                           <label className="block font-bold text-slate-700 mb-1">Company / Organization Name (Optional)</label>
                           <input
                             type="text"
-                            placeholder="e.g. Veda Robotics Innovations Pvt Ltd"
+                            placeholder="Veda Robotics Innovations Pvt Ltd"
                             value={companyName}
                             onChange={(e) => setCompanyName(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-900 focus:outline-none focus:border-blue-500"
@@ -746,7 +746,7 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
                           <label className="block font-bold text-slate-700 mb-1">GSTIN Number (Optional - for GST Tax Credit)</label>
                           <input
                             type="text"
-                            placeholder="e.g. 24AAAAA0000A1Z5"
+                            placeholder="24AAAAA0000A1Z5"
                             value={gstin}
                             onChange={(e) => setGstin(e.target.value.toUpperCase())}
                             className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-mono text-slate-900 uppercase focus:outline-none focus:border-blue-500"
@@ -761,7 +761,7 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
                             type="text"
                             required
                             maxLength={6}
-                            placeholder="e.g. 390001"
+                            placeholder="390001"
                             value={pincode}
                             onChange={(e) => setPincode(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-mono font-bold text-slate-900 focus:outline-none focus:border-blue-500"
@@ -773,7 +773,7 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
                           <input
                             type="text"
                             required
-                            placeholder="e.g. Vadodara"
+                            placeholder="Vadodara"
                             value={city}
                             onChange={(e) => setCity(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-900 focus:outline-none focus:border-blue-500"
@@ -785,7 +785,7 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
                           <input
                             type="text"
                             required
-                            placeholder="e.g. Gujarat"
+                            placeholder="Gujarat"
                             value={state}
                             onChange={(e) => setState(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-900 focus:outline-none focus:border-blue-500"
@@ -798,7 +798,7 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
                         <input
                           type="text"
                           required
-                          placeholder="e.g. Plot No 42, Tech Park Tower B"
+                          placeholder="Plot No 42, Tech Park Tower B"
                           value={houseBuilding}
                           onChange={(e) => setHouseBuilding(e.target.value)}
                           className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-900 focus:outline-none focus:border-blue-500"
@@ -811,7 +811,7 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
                           <input
                             type="text"
                             required
-                            placeholder="e.g. GIDC Electronics Estate"
+                            placeholder="GIDC Electronics Estate"
                             value={streetArea}
                             onChange={(e) => setStreetArea(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-900 focus:outline-none focus:border-blue-500"
@@ -822,7 +822,7 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
                           <label className="block font-bold text-slate-700 mb-1">Landmark (Optional)</label>
                           <input
                             type="text"
-                            placeholder="e.g. Near Science City Road"
+                            placeholder="Near Science City Road"
                             value={landmark}
                             onChange={(e) => setLandmark(e.target.value)}
                             className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-900 focus:outline-none focus:border-blue-500"
@@ -894,7 +894,7 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
                               <input
                                 type="text"
                                 required
-                                placeholder="e.g. Accounts Dept / Veda Corp"
+                                placeholder="Accounts Dept / Veda Corp"
                                 value={billFullName}
                                 onChange={(e) => setBillFullName(e.target.value)}
                                 className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-900 focus:outline-none focus:border-blue-500"
@@ -906,7 +906,7 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
                               <input
                                 type="tel"
                                 required
-                                placeholder="e.g. +91 9876543210"
+                                placeholder="+91 9876543210"
                                 value={billPhone}
                                 onChange={(e) => setBillPhone(e.target.value)}
                                 className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-900 focus:outline-none focus:border-blue-500"
@@ -919,7 +919,7 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
                               <label className="block font-bold text-slate-700 mb-1">Billing Company Name</label>
                               <input
                                 type="text"
-                                placeholder="e.g. Veda Technologies Headquarters"
+                                placeholder="Veda Technologies Headquarters"
                                 value={billCompanyName}
                                 onChange={(e) => setBillCompanyName(e.target.value)}
                                 className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-medium text-slate-900 focus:outline-none focus:border-blue-500"
@@ -930,7 +930,7 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
                               <label className="block font-bold text-slate-700 mb-1">Billing Company GSTIN</label>
                               <input
                                 type="text"
-                                placeholder="e.g. 24AAAAA0000A1Z5"
+                                placeholder="24AAAAA0000A1Z5"
                                 value={billGstin}
                                 onChange={(e) => setBillGstin(e.target.value.toUpperCase())}
                                 className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-mono text-slate-900 uppercase focus:outline-none focus:border-blue-500"

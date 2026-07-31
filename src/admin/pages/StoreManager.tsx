@@ -12,7 +12,8 @@ import {
   answerStoreQuestion, 
   deleteStoreQuestion, 
   getStoredStoreReviews, 
-  deleteStoreReview 
+  deleteStoreReview,
+  deleteDocumentBlob,
 } from '../../services/dataStorage';
 
 interface StoreManagerProps {
@@ -109,11 +110,13 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
 
   const handleRemoveDocumentFromItem = (docId: string) => {
     if (!editingStoreItem) return;
+    deleteDocumentBlob(docId);
     const existingDocs = editingStoreItem.documents || [];
     setEditingStoreItem({
       ...editingStoreItem,
       documents: existingDocs.filter((d) => d.id !== docId),
     });
+    showToast('Document removed from component.', 'info');
   };
 
   const handleFileUploadBase64 = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -277,6 +280,10 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
       'Delete Store Component',
       `Are you sure you want to delete component "${name}" from the store inventory?`,
       () => {
+        const itemToDelete = storeItems.find((s) => s.id === id);
+        if (itemToDelete && itemToDelete.documents) {
+          itemToDelete.documents.forEach((d) => deleteDocumentBlob(d.id));
+        }
         const updated = storeItems.filter((s) => s.id !== id);
         onUpdateStoreItems(updated);
         deleteFirestoreDoc('store_items', id);

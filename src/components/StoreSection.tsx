@@ -578,26 +578,28 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
                                 </div>
                               </div>
 
-                              <div className="flex items-center gap-2 pt-2 border-t border-slate-100">
-                                {docItem.url && docItem.url !== '#' ? (
+                              <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+                                <button
+                                  type="button"
+                                  onClick={() => setViewingDocModal(docItem)}
+                                  className="flex-1 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                                >
+                                  <Eye className="w-3.5 h-3.5 text-blue-400" />
+                                  <span>View Inline</span>
+                                </button>
+
+                                {docItem.url && docItem.url !== '#' && (
                                   <a
                                     href={docItem.url}
+                                    download={`${docItem.title || 'Technical_Document'}.pdf`}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="flex-1 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs"
+                                    className="px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs shrink-0"
+                                    title="Download File"
                                   >
                                     <Download className="w-3.5 h-3.5" />
-                                    <span>Download / View Document</span>
+                                    <span>Download</span>
                                   </a>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => setViewingDocModal(docItem)}
-                                    className="flex-1 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
-                                  >
-                                    <Eye className="w-3.5 h-3.5 text-blue-400" />
-                                    <span>View Inline Documentation</span>
-                                  </button>
                                 )}
                               </div>
                             </div>
@@ -981,7 +983,7 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
           {/* DOCUMENT INLINE PREVIEW MODAL */}
           {viewingDocModal && (
             <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-xs flex items-center justify-center p-4">
-              <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full p-6 space-y-4">
+              <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-4xl w-full p-6 space-y-4 max-h-[90vh] flex flex-col">
                 <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                   <div className="flex items-center gap-2">
                     <FileText className="w-5 h-5 text-blue-600" />
@@ -998,15 +1000,33 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
                   </button>
                 </div>
 
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3 text-xs text-slate-700">
-                  <div className="flex items-center gap-2 font-mono text-[11px] text-slate-500">
-                    <span>Document Type: <strong>{viewingDocModal.fileType}</strong></span>
-                    <span>•</span>
-                    <span>Size: <strong>{viewingDocModal.fileSize || 'N/A'}</strong></span>
-                  </div>
-                  <p className="leading-relaxed">
-                    This document is hosted in OhmVeda technical cloud repository. Click below to view or download the complete specification sheet.
-                  </p>
+                <div className="flex items-center gap-2 font-mono text-[11px] text-slate-500 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  <span>Document Type: <strong>{viewingDocModal.fileType}</strong></span>
+                  <span>•</span>
+                  <span>Size: <strong>{viewingDocModal.fileSize || 'N/A'}</strong></span>
+                  {viewingDocModal.uploadedAt && (
+                    <>
+                      <span>•</span>
+                      <span>Uploaded: <strong>{viewingDocModal.uploadedAt}</strong></span>
+                    </>
+                  )}
+                </div>
+
+                {/* Embedded Document Viewer */}
+                <div className="flex-1 min-h-[380px] bg-slate-900 rounded-2xl overflow-hidden border border-slate-200 flex items-center justify-center">
+                  {viewingDocModal.url && viewingDocModal.url !== '#' ? (
+                    <iframe
+                      src={viewingDocModal.url}
+                      title={viewingDocModal.title}
+                      className="w-full h-full min-h-[400px] border-none bg-white"
+                    />
+                  ) : (
+                    <div className="p-8 text-center text-slate-400 space-y-2">
+                      <FileText className="w-12 h-12 mx-auto text-slate-600" />
+                      <p className="text-xs font-bold text-slate-300">Preview not available for this document format.</p>
+                      <p className="text-[11px]">Please download the file using the button below.</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center justify-end gap-3 pt-2 border-t border-slate-100">
@@ -1015,17 +1035,18 @@ export const StoreSection: React.FC<StoreSectionProps> = ({
                     onClick={() => setViewingDocModal(null)}
                     className="px-4 py-2 rounded-xl bg-slate-100 text-slate-700 text-xs font-bold hover:bg-slate-200 transition-colors cursor-pointer"
                   >
-                    Close
+                    Close Preview
                   </button>
                   {viewingDocModal.url && viewingDocModal.url !== '#' && (
                     <a
                       href={viewingDocModal.url}
+                      download={`${viewingDocModal.title || 'Technical_Document'}.pdf`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-5 py-2 rounded-xl bg-blue-600 text-white text-xs font-bold hover:bg-blue-700 transition-colors flex items-center gap-1.5 cursor-pointer"
                     >
                       <Download className="w-4 h-4" />
-                      <span>Download PDF</span>
+                      <span>Download Document</span>
                     </a>
                   )}
                 </div>

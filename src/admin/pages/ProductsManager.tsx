@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { ProductCategory, TurnkeyProduct } from '../../types';
 import { ImageUploaderManager } from '../../components/ImageUploaderManager';
-import { addAdminLog, deleteFirestoreDoc } from '../../services/dataStorage';
+import { addAdminLog, deleteFirestoreDoc, deleteDocumentBlob } from '../../services/dataStorage';
 
 interface ProductsManagerProps {
   products: TurnkeyProduct[];
@@ -149,9 +149,13 @@ export const ProductsManager: React.FC<ProductsManagerProps> = ({
       'Delete Product',
       `Are you sure you want to delete product "${title}"? This will remove it from the catalog.`,
       () => {
+        const prodToDelete = products.find((p) => p.id === id);
+        if (prodToDelete && prodToDelete.documents) {
+          prodToDelete.documents.forEach((d) => deleteDocumentBlob(d.id));
+        }
         const updated = products.filter((p) => p.id !== id);
         onUpdateProducts(updated);
-        deleteFirestoreDoc('products', id);
+        deleteFirestoreDoc('turnkey_products', id);
         addAdminLog({
           action: 'DELETE',
           target: 'PRODUCT',

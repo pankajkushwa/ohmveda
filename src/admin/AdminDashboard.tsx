@@ -3,7 +3,7 @@ import {
   JobRole, ProductCategory, StoreCategory, StoreItem, TurnkeyProduct, UserProfile 
 } from '../types';
 import { 
-  DEFAULT_PRODUCT_CATEGORIES, DEFAULT_STORE_CATEGORIES, getStoredJobApplications, isAuthorizedAdminEmail 
+  DEFAULT_PRODUCT_CATEGORIES, DEFAULT_STORE_CATEGORIES, getStoredJobApplications, getStoredUserOrders, isAuthorizedAdminEmail 
 } from '../services/dataStorage';
 
 import { AdminSidebar, AdminTab } from './components/AdminSidebar';
@@ -14,6 +14,7 @@ import { Toast, ToastMessage } from './components/Toast';
 import { ProductsManager } from './pages/ProductsManager';
 import { StoreManager } from './pages/StoreManager';
 import { CategoriesManager } from './pages/CategoriesManager';
+import { DeliveriesManager } from './pages/DeliveriesManager';
 import { CareersAndApplicantsManager } from './pages/CareersAndApplicantsManager';
 import { BrandingManager } from './pages/BrandingManager';
 import { AdminAccountsManager } from './pages/AdminAccountsManager';
@@ -96,6 +97,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   // Counts for badge chips
   const jobAppsCount = getStoredJobApplications().length;
+  const ordersCount = getStoredUserOrders().length;
 
   // IF NOT LOGGED IN OR NOT AUTHORIZED ADMIN: Show standalone AdminLoginView
   if (!userProfile || !isAuthorized) {
@@ -117,6 +119,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         productsCount={products.length}
         storeCount={storeItems.length}
         jobAppsCount={jobAppsCount}
+        ordersCount={ordersCount}
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
       />
@@ -160,6 +163,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               productCategories={productCategories}
               storeCategories={storeCategories}
               onUpdateProductCategories={onUpdateProductCategories}
+              showToast={showToast}
+              openDeleteConfirm={openDeleteConfirm}
+            />
+          )}
+
+          {activeTab === 'deliveries' && (
+            <DeliveriesManager
               showToast={showToast}
               openDeleteConfirm={openDeleteConfirm}
             />

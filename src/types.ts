@@ -243,6 +243,7 @@ export interface TurnkeyProduct {
   applications: string[];
   image?: string;
   images?: string[];
+  documents?: TechnicalDocument[];
 }
 
 export interface JobRole {

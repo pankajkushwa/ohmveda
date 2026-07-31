@@ -1,4 +1,4 @@
-import { CareerPageSettings, CompanyContactInfo, JobApplication, JobRole, ProductCategory, SocialLink, StoreCategory, StoreItem, StoreQaItem, StoreReviewItem, TechnicalDocument, TurnkeyProduct, UserAddress, UserOrder } from '../types';
+import { CareerPageSettings, CompanyContactInfo, JobApplication, JobRole, ProductCategory, SocialLink, StoreCategory, StoreItem, StoreQaItem, StoreReviewItem, TechnicalDocument, TurnkeyProduct, UserAddress, UserOrder, UserProfile } from '../types';
 import { STORE_PRODUCTS } from '../data/storeProducts';
 import { INITIAL_TURNKEY_PRODUCTS } from '../data/turnkeyProducts';
 import { INITIAL_JOB_ROLES } from '../data/careersData';
@@ -26,7 +26,85 @@ const STORAGE_KEYS = {
   STORE_REVIEWS: 'ohmveda_store_reviews_v1',
   USER_ADDRESSES: 'ohmveda_user_addresses_v1',
   USER_ORDERS: 'ohmveda_user_orders_v1',
+  DOCUMENT_BLOBS: 'ohmveda_doc_blobs_v1',
 };
+
+// Document Blob Cache Helpers for safe storage without hitting Firestore 1MB document size limit
+const DOC_BLOB_STORAGE_PREFIX = 'ohmveda_doc_blob_';
+
+export function saveDocumentBlob(docId: string, content: string): void {
+  try {
+    localStorage.setItem(`${DOC_BLOB_STORAGE_PREFIX}${docId}`, content);
+  } catch (e) {
+    console.warn('Could not save document blob to localStorage:', e);
+  }
+}
+
+export function getDocumentBlob(docId: string): string | null {
+  try {
+    return localStorage.getItem(`${DOC_BLOB_STORAGE_PREFIX}${docId}`);
+  } catch (e) {
+    return null;
+  }
+}
+
+export function deleteDocumentBlob(docId: string): void {
+  try {
+    localStorage.removeItem(`${DOC_BLOB_STORAGE_PREFIX}${docId}`);
+  } catch (e) {
+    // ignore
+  }
+}
+
+// Sanitizes item/product documents for Firestore so large base64 attachments don't exceed 1MB limit
+export function prepareItemForFirestore<T extends StoreItem | TurnkeyProduct>(item: T): T {
+  if (!item.documents || !Array.isArray(item.documents)) {
+    return item;
+  }
+
+  const cleanDocs = item.documents.map((doc) => {
+    if (doc.url && doc.url.startsWith('data:')) {
+      saveDocumentBlob(doc.id, doc.url);
+      return {
+        ...doc,
+        url: `doc-local://${doc.id}`,
+      };
+    }
+    return doc;
+  });
+
+  return {
+    ...item,
+    documents: cleanDocs,
+  };
+}
+
+// Reconstitutes full document file URLs from local blob cache if stored as lightweight reference
+export function resolveItemDocuments<T extends StoreItem | TurnkeyProduct>(item: T): T {
+  if (!item.documents || !Array.isArray(item.documents)) {
+    return item;
+  }
+
+  const resolvedDocs = item.documents.map((doc) => {
+    const cached = getDocumentBlob(doc.id);
+    if (cached) {
+      return { ...doc, url: cached };
+    }
+    if (doc.url && doc.url.startsWith('doc-local://')) {
+      const docId = doc.url.replace('doc-local://', '');
+      const blob = getDocumentBlob(docId);
+      if (blob) {
+        return { ...doc, url: blob };
+      }
+    }
+    return doc;
+  });
+
+  return {
+    ...item,
+    documents: resolvedDocs,
+  };
+}
 
 export const DEFAULT_AUTHORIZED_ADMIN_EMAILS: string[] = [
   'ohmvedatechnologies@gmail.com',
@@ -165,7 +243,7 @@ export function getStoredTurnkeyProducts(): TurnkeyProduct[] {
     if (raw !== null) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed;
+        return parsed.map((p) => resolveItemDocuments(p));
       }
     }
   } catch (err) {
@@ -177,9 +255,11 @@ export function getStoredTurnkeyProducts(): TurnkeyProduct[] {
 // Helper to save turnkey products
 export function saveStoredTurnkeyProducts(products: TurnkeyProduct[]): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.TURNKEY_PRODUCTS, JSON.stringify(products));
-    products.forEach((p) => {
-      setDoc(doc(db, 'turnkey_products', p.id), sanitizeForFirestore(p), { merge: true }).catch((err) =>
+    const productsWithFullDocs = products.map((p) => resolveItemDocuments(p));
+    localStorage.setItem(STORAGE_KEYS.TURNKEY_PRODUCTS, JSON.stringify(productsWithFullDocs));
+    productsWithFullDocs.forEach((p) => {
+      const firestorePayload = prepareItemForFirestore(p);
+      setDoc(doc(db, 'turnkey_products', p.id), sanitizeForFirestore(firestorePayload), { merge: true }).catch((err) =>
         console.error('Firestore save turnkey product error:', err)
       );
     });
@@ -195,21 +275,23 @@ export function getStoredStoreItems(): StoreItem[] {
     if (raw !== null) {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) {
-        return parsed;
+        return parsed.map((it) => resolveItemDocuments(it));
       }
     }
   } catch (err) {
     console.error('Error reading store items:', err);
   }
-  return STORE_PRODUCTS;
+  return STORE_PRODUCTS.map((it) => resolveItemDocuments(it));
 }
 
 // Helper to save store items
 export function saveStoredStoreItems(items: StoreItem[]): void {
   try {
-    localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify(items));
-    items.forEach((item) => {
-      setDoc(doc(db, 'store_items', item.id), sanitizeForFirestore(item), { merge: true }).catch((err) =>
+    const itemsWithFullDocs = items.map((it) => resolveItemDocuments(it));
+    localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify(itemsWithFullDocs));
+    itemsWithFullDocs.forEach((item) => {
+      const firestorePayload = prepareItemForFirestore(item);
+      setDoc(doc(db, 'store_items', item.id), sanitizeForFirestore(firestorePayload), { merge: true }).catch((err) =>
         console.error('Firestore save store item error:', err)
       );
     });
@@ -1121,6 +1203,7 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   customLogo?: string | null;
   storeQas?: StoreQaItem[];
   storeReviews?: StoreReviewItem[];
+  userOrders?: UserOrder[];
 }) => void) {
   const unsubs: (() => void)[] = [];
 
@@ -1128,11 +1211,12 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   try {
     const unsub = onSnapshot(collection(db, 'store_items'), (snapshot) => {
       if (!snapshot.empty) {
+        localStorage.setItem('ohmveda_store_items_init', 'true');
         const items = snapshot.docs.map((docSnap) => {
           const data = docSnap.data() as StoreItem;
           const sellingPrice = data.price ?? 0;
           const origPrice = (data.originalPrice && data.originalPrice > sellingPrice) ? data.originalPrice : undefined;
-          return {
+          const rawItem: StoreItem = {
             ...data,
             id: docSnap.id || data.id,
             name: data.name || 'Unnamed Component',
@@ -1152,12 +1236,20 @@ export function subscribeToFirestoreData(onUpdate: (data: {
             badge: data.badge,
             documents: Array.isArray(data.documents) ? data.documents : [],
           };
+          return resolveItemDocuments(rawItem);
         });
         localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify(items));
         onUpdate({ storeItems: items });
       } else {
-        localStorage.setItem(STORAGE_KEYS.STORE_ITEMS, JSON.stringify(STORE_PRODUCTS));
-        onUpdate({ storeItems: STORE_PRODUCTS });
+        const isInit = localStorage.getItem('ohmveda_store_items_init') === 'true';
+        if (!isInit) {
+          localStorage.setItem('ohmveda_store_items_init', 'true');
+          saveStoredStoreItems(STORE_PRODUCTS);
+          onUpdate({ storeItems: STORE_PRODUCTS });
+        } else {
+          const local = getStoredStoreItems();
+          onUpdate({ storeItems: local });
+        }
       }
     });
     unsubs.push(unsub);
@@ -1169,12 +1261,19 @@ export function subscribeToFirestoreData(onUpdate: (data: {
   try {
     const unsub = onSnapshot(collection(db, 'turnkey_products'), (snapshot) => {
       if (!snapshot.empty) {
-        const products = snapshot.docs.map((docSnap) => docSnap.data() as TurnkeyProduct);
+        localStorage.setItem('ohmveda_turnkey_products_init', 'true');
+        const products = snapshot.docs.map((docSnap) => resolveItemDocuments(docSnap.data() as TurnkeyProduct));
         localStorage.setItem(STORAGE_KEYS.TURNKEY_PRODUCTS, JSON.stringify(products));
         onUpdate({ products });
       } else {
-        localStorage.setItem(STORAGE_KEYS.TURNKEY_PRODUCTS, JSON.stringify([]));
-        onUpdate({ products: [] });
+        const isInit = localStorage.getItem('ohmveda_turnkey_products_init') === 'true';
+        if (!isInit) {
+          localStorage.setItem('ohmveda_turnkey_products_init', 'true');
+          onUpdate({ products: [] });
+        } else {
+          const local = getStoredTurnkeyProducts();
+          onUpdate({ products: local });
+        }
       }
     });
     unsubs.push(unsub);
@@ -1505,4 +1604,24 @@ export function saveStoredUserOrder(order: UserOrder): UserOrder {
     console.error('Error saving order:', err);
   }
   return order;
+}
+
+export function updateStoredUserOrder(order: UserOrder): UserOrder[] {
+  const current = getStoredUserOrders();
+  const updated = current.map((o) => (o.id === order.id ? order : o));
+  try {
+    localStorage.setItem(STORAGE_KEYS.USER_ORDERS, JSON.stringify(updated));
+    setDoc(doc(db, 'user_orders', order.id), sanitizeForFirestore(order), { merge: true }).catch((err) =>
+      console.error('Firestore update order error:', err)
+    );
+    addAdminLog({
+      action: 'UPDATE',
+      target: 'STORE',
+      title: `Order Updated (#${order.id})`,
+      details: `Order #${order.id} status changed to '${order.orderStatus}'. Courier: ${order.courierPartner || 'N/A'}, AWB: ${order.trackingNumber || 'N/A'}.`,
+    });
+  } catch (err) {
+    console.error('Error updating order:', err);
+  }
+  return updated;
 }

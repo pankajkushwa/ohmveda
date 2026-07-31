@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   X, ShoppingBag, ArrowRight, CheckCircle2, Truck, ShieldCheck, MapPin, 
   CreditCard, Plus, Check, AlertCircle, Building, Phone, User, FileText, 
-  QrCode, ArrowLeft, Download, Printer, Tag
+  QrCode, ArrowLeft, Download, Printer, Tag, Receipt
 } from 'lucide-react';
 import { CartItem, UserAddress, UserOrder, UserProfile } from '../types';
 import { 
@@ -109,6 +109,29 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     }
   };
 
+  const handleBillPincodeChange = (val: string) => {
+    const clean = val.replace(/\D/g, '').slice(0, 6);
+    setAddressFormData((prev) => ({ ...prev, billPincode: clean }));
+    
+    if (clean.length === 6) {
+      if (clean.startsWith('390')) {
+        setAddressFormData((prev) => ({ ...prev, billCity: 'Vadodara', billState: 'Gujarat' }));
+      } else if (clean.startsWith('380')) {
+        setAddressFormData((prev) => ({ ...prev, billCity: 'Ahmedabad', billState: 'Gujarat' }));
+      } else if (clean.startsWith('395')) {
+        setAddressFormData((prev) => ({ ...prev, billCity: 'Surat', billState: 'Gujarat' }));
+      } else if (clean.startsWith('360')) {
+        setAddressFormData((prev) => ({ ...prev, billCity: 'Rajkot', billState: 'Gujarat' }));
+      } else if (clean.startsWith('400')) {
+        setAddressFormData((prev) => ({ ...prev, billCity: 'Mumbai', billState: 'Maharashtra' }));
+      } else if (clean.startsWith('560')) {
+        setAddressFormData((prev) => ({ ...prev, billCity: 'Bengaluru', billState: 'Karnataka' }));
+      } else if (clean.startsWith('110')) {
+        setAddressFormData((prev) => ({ ...prev, billCity: 'New Delhi', billState: 'Delhi' }));
+      }
+    }
+  };
+
   // Load user addresses on open
   useEffect(() => {
     if (isOpen && userProfile?.id) {
@@ -126,6 +149,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setAddressFormData({
         fullName: userProfile.name || '',
         phone: userProfile.phone || '',
+        companyName: userProfile.company || '',
+        gstin: userProfile.gstin || '',
         pincode: '',
         houseBuilding: '',
         streetArea: '',
@@ -134,6 +159,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         state: 'Gujarat',
         addressType: 'Home',
         isDefault: loaded.length === 0,
+        isBillingSame: true,
+        billFullName: '',
+        billPhone: '',
+        billCompanyName: '',
+        billGstin: '',
+        billHouseBuilding: '',
+        billStreetArea: '',
+        billLandmark: '',
+        billCity: 'Vadodara',
+        billState: 'Gujarat',
+        billPincode: '',
       });
 
       setStep(1);
@@ -534,6 +570,8 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         setAddressFormData({
                           fullName: userProfile.name || '',
                           phone: userProfile.phone || '',
+                          companyName: userProfile.company || '',
+                          gstin: userProfile.gstin || '',
                           pincode: '',
                           houseBuilding: '',
                           streetArea: '',
@@ -542,6 +580,17 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                           state: 'Gujarat',
                           addressType: 'Home',
                           isDefault: false,
+                          isBillingSame: true,
+                          billFullName: '',
+                          billPhone: '',
+                          billCompanyName: '',
+                          billGstin: '',
+                          billHouseBuilding: '',
+                          billStreetArea: '',
+                          billLandmark: '',
+                          billCity: 'Vadodara',
+                          billState: 'Gujarat',
+                          billPincode: '',
                         });
                         setShowAddressForm(true);
                       }}
@@ -812,6 +861,156 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                       </div>
                     </div>
                   </div>
+
+                  {/* Billing Address Option */}
+                  <div className="pt-2 border-t border-slate-200">
+                    <label className="flex items-center gap-2 text-xs font-bold text-slate-800 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={addressFormData.isBillingSame}
+                        onChange={(e) => setAddressFormData({ ...addressFormData, isBillingSame: e.target.checked })}
+                        className="accent-blue-600 rounded"
+                      />
+                      <span>Billing address is the same as delivery address</span>
+                    </label>
+                  </div>
+
+                  {!addressFormData.isBillingSame && (
+                    <div className="p-3.5 rounded-xl bg-blue-50/60 border border-blue-200 space-y-3">
+                      <span className="text-[11px] font-extrabold text-blue-900 uppercase tracking-wider block font-mono flex items-center gap-1.5">
+                        <Receipt className="w-4 h-4 text-blue-600" />
+                        <span>Separate Billing Address & Tax Entity</span>
+                      </span>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">Billing Full Name / Entity *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Rahul Sharma / Accounts Dept"
+                            value={addressFormData.billFullName}
+                            onChange={(e) => setAddressFormData({ ...addressFormData, billFullName: e.target.value })}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">Billing Phone Number *</label>
+                          <input
+                            type="tel"
+                            required
+                            placeholder="10-digit mobile number"
+                            value={addressFormData.billPhone}
+                            onChange={(e) => setAddressFormData({ ...addressFormData, billPhone: e.target.value })}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">Billing Company Name (Optional)</label>
+                          <input
+                            type="text"
+                            placeholder="Veda Robotics Pvt Ltd"
+                            value={addressFormData.billCompanyName}
+                            onChange={(e) => setAddressFormData({ ...addressFormData, billCompanyName: e.target.value })}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">Billing GSTIN (Optional)</label>
+                          <input
+                            type="text"
+                            placeholder="24AAAAA0000A1Z5"
+                            value={addressFormData.billGstin}
+                            onChange={(e) => setAddressFormData({ ...addressFormData, billGstin: e.target.value.toUpperCase() })}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono uppercase text-slate-900 focus:outline-none focus:border-blue-600"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">Billing PIN Code *</label>
+                          <input
+                            type="text"
+                            required
+                            maxLength={6}
+                            placeholder="390001"
+                            value={addressFormData.billPincode}
+                            onChange={(e) => handleBillPincodeChange(e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs font-mono font-bold text-slate-900 focus:outline-none focus:border-blue-600"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">Billing City *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Vadodara"
+                            value={addressFormData.billCity}
+                            onChange={(e) => setAddressFormData({ ...addressFormData, billCity: e.target.value })}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[11px] font-bold text-slate-700 mb-1">Billing State *</label>
+                          <input
+                            type="text"
+                            required
+                            placeholder="Gujarat"
+                            value={addressFormData.billState}
+                            onChange={(e) => setAddressFormData({ ...addressFormData, billState: e.target.value })}
+                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Billing House, Building, Office *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Plot 402, Admin Building"
+                          value={addressFormData.billHouseBuilding}
+                          onChange={(e) => setAddressFormData({ ...addressFormData, billHouseBuilding: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">
+                          Billing Street, Area *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          placeholder="Alkapuri Industrial Park"
+                          value={addressFormData.billStreetArea}
+                          onChange={(e) => setAddressFormData({ ...addressFormData, billStreetArea: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[11px] font-bold text-slate-700 mb-1">Billing Landmark (Optional)</label>
+                        <input
+                          type="text"
+                          placeholder="Near Express Highway"
+                          value={addressFormData.billLandmark}
+                          onChange={(e) => setAddressFormData({ ...addressFormData, billLandmark: e.target.value })}
+                          className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-blue-600"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <div className="pt-1 flex items-center justify-between">
                     <label className="flex items-center gap-2 text-xs font-medium text-slate-700 cursor-pointer">

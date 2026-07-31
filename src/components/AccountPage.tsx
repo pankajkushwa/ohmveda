@@ -4,7 +4,7 @@ import {
   ChevronRight, CheckCircle2, Receipt, User, Search, FileText, Check, AlertCircle,
   Copy, ArrowLeft, Building2, Phone, Sparkles, LogOut, ExternalLink, RefreshCw, Layers
 } from 'lucide-react';
-import { UserAddress, UserOrder, UserProfile, SeparateBillingAddress, StoreProduct } from '../types';
+import { UserAddress, UserOrder, UserProfile, SeparateBillingAddress, StoreItem } from '../types';
 import { 
   getStoredUserAddresses, 
   getStoredUserOrders, 
@@ -19,7 +19,7 @@ interface AccountPageProps {
   onOpenAuth: () => void;
   onLogout: () => void;
   onProfileUpdated?: (updated: UserProfile) => void;
-  onAddToCart?: (product: StoreProduct) => void;
+  onAddToCart?: (product: StoreItem) => void;
   onNavigateToStore?: () => void;
 }
 
