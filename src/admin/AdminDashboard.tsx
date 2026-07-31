@@ -19,6 +19,7 @@ import { CareersAndApplicantsManager } from './pages/CareersAndApplicantsManager
 import { BrandingManager } from './pages/BrandingManager';
 import { AdminAccountsManager } from './pages/AdminAccountsManager';
 import { AdminLogsManager } from './pages/AdminLogsManager';
+import { DashboardOverview } from './pages/DashboardOverview';
 import { AdminLoginView } from './components/AdminLoginView';
 
 export interface AdminDashboardProps {
@@ -64,7 +65,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [mobileOpen, setMobileOpen] = useState(false);
 
   // Active Management Page Tab
-  const [activeTab, setActiveTab] = useState<AdminTab>('products');
+  const [activeTab, setActiveTab] = useState<AdminTab>('dashboard');
 
   // Check user authorization
   const isAuthorized = userProfile ? isAuthorizedAdminEmail(userProfile.email) : false;
@@ -136,6 +137,16 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         />
 
         <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
+          {activeTab === 'dashboard' && (
+            <DashboardOverview
+              products={products}
+              storeItems={storeItems}
+              jobRoles={jobRoles}
+              setActiveTab={setActiveTab}
+              showToast={showToast}
+            />
+          )}
+
           {activeTab === 'products' && (
             <ProductsManager
               products={products}

@@ -1,9 +1,10 @@
 import React from 'react';
 import { 
-  Box, Cpu, Layers, Briefcase, Image, UserCheck, Activity, X, Truck
+  Box, Cpu, Layers, Briefcase, Image, UserCheck, Activity, X, Truck, LayoutDashboard
 } from 'lucide-react';
 
 export type AdminTab = 
+  | 'dashboard'
   | 'products' 
   | 'store' 
   | 'categories' 
@@ -35,6 +36,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   setMobileOpen,
 }) => {
   const navItems: { id: AdminTab; label: string; icon: React.FC<{ className?: string }>; badge?: number }[] = [
+    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'products', label: 'Products', icon: Box, badge: productsCount },
     { id: 'store', label: 'Store Inventory', icon: Cpu, badge: storeCount },
     { id: 'categories', label: 'Categories Manager', icon: Layers },
