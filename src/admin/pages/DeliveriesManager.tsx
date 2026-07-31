@@ -24,6 +24,7 @@ export const DeliveriesManager: React.FC<DeliveriesManagerProps> = ({
 
   // Edit dispatch form state
   const [editStatus, setEditStatus] = useState<UserOrder['orderStatus']>('Processing');
+  const [editPaymentStatus, setEditPaymentStatus] = useState<UserOrder['paymentStatus']>('PAID');
   const [editCourierPartner, setEditCourierPartner] = useState('');
   const [editTrackingNumber, setEditTrackingNumber] = useState('');
   const [editTrackingUrl, setEditTrackingUrl] = useState('');
@@ -54,6 +55,7 @@ export const DeliveriesManager: React.FC<DeliveriesManagerProps> = ({
   useEffect(() => {
     if (selectedOrder) {
       setEditStatus(selectedOrder.orderStatus || 'Processing');
+      setEditPaymentStatus(selectedOrder.paymentStatus || 'PAID');
       setEditCourierPartner(selectedOrder.courierPartner || 'BlueDart Express');
       setEditTrackingNumber(selectedOrder.trackingNumber || '');
       setEditTrackingUrl(selectedOrder.courierTrackingUrl || '');
@@ -75,6 +77,7 @@ export const DeliveriesManager: React.FC<DeliveriesManagerProps> = ({
     const updatedOrder: UserOrder = {
       ...selectedOrder,
       orderStatus: editStatus,
+      paymentStatus: editPaymentStatus,
       courierPartner: editCourierPartner.trim() || undefined,
       trackingNumber: editTrackingNumber.trim() || undefined,
       courierTrackingUrl: editTrackingUrl.trim() || undefined,
@@ -85,7 +88,22 @@ export const DeliveriesManager: React.FC<DeliveriesManagerProps> = ({
     const updatedList = updateStoredUserOrder(updatedOrder);
     setOrders(updatedList);
     setSelectedOrder(updatedOrder);
-    showToast(`Order #${selectedOrder.id} dispatch tracking updated!`, 'success');
+    showToast(`Order #${selectedOrder.id} status & refund status updated!`, 'success');
+  };
+
+  const handleMarkRefundCompleted = (order: UserOrder) => {
+    const updatedOrder: UserOrder = {
+      ...order,
+      paymentStatus: 'Refund Completed',
+      adminDispatchNotes: `Refund completed on ${new Date().toLocaleDateString('en-IN')}. ${order.adminDispatchNotes || ''}`,
+    };
+    const updatedList = updateStoredUserOrder(updatedOrder);
+    setOrders(updatedList);
+    if (selectedOrder && selectedOrder.id === order.id) {
+      setSelectedOrder(updatedOrder);
+      setEditPaymentStatus('Refund Completed');
+    }
+    showToast(`Refund for Order #${order.id} marked as Completed!`, 'success');
   };
 
   const handleQuickStatusUpdate = (order: UserOrder, newStatus: UserOrder['orderStatus']) => {
@@ -231,11 +249,21 @@ export const DeliveriesManager: React.FC<DeliveriesManagerProps> = ({
           </div>
 
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono block">Payment Mode</span>
-            <p className="text-xs font-black text-slate-900 mt-1 flex items-center gap-1.5">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 font-mono block">Payment Mode & Status</span>
+            <p className="text-xs font-black text-slate-900 mt-1 flex items-center gap-1.5 flex-wrap">
               <CreditCard className="w-3.5 h-3.5 text-blue-600" />
               <span>{selectedOrder.paymentMethod}</span>
-              <span className="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded font-bold">{selectedOrder.paymentStatus}</span>
+              <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase border ${
+                selectedOrder.paymentStatus === 'Refund Pending'
+                  ? 'bg-amber-100 text-amber-900 border-amber-300 font-bold'
+                  : selectedOrder.paymentStatus === 'Refund Completed'
+                  ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold'
+                  : selectedOrder.paymentStatus === 'Cancelled'
+                  ? 'bg-rose-100 text-rose-900 border-rose-300'
+                  : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+              }`}>
+                {selectedOrder.paymentStatus}
+              </span>
             </p>
           </div>
 
@@ -432,6 +460,48 @@ export const DeliveriesManager: React.FC<DeliveriesManagerProps> = ({
                     <option value="Delivered">Delivered</option>
                     <option value="Cancelled">Cancelled</option>
                   </select>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase font-mono">
+                      Payment & Refund Status
+                    </label>
+                    {editPaymentStatus === 'Refund Pending' && (
+                      <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                        Refund Pending
+                      </span>
+                    )}
+                  </div>
+                  <select
+                    value={editPaymentStatus}
+                    onChange={(e) => setEditPaymentStatus(e.target.value as UserOrder['paymentStatus'])}
+                    className={`w-full border rounded-xl px-3 py-2 font-bold text-slate-900 focus:outline-none cursor-pointer ${
+                      editPaymentStatus === 'Refund Pending'
+                        ? 'bg-amber-50 border-amber-300 text-amber-900'
+                        : editPaymentStatus === 'Refund Completed'
+                        ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                        : 'bg-slate-50 border-slate-200'
+                    }`}
+                  >
+                    <option value="PAID">PAID</option>
+                    <option value="PENDING">PENDING</option>
+                    <option value="COD_CONFIRMED">COD_CONFIRMED</option>
+                    <option value="Refund Pending">Refund Pending (7 Working Days)</option>
+                    <option value="Refund Completed">Refund Completed (Processed)</option>
+                    <option value="Cancelled">Cancelled</option>
+                  </select>
+
+                  {editPaymentStatus === 'Refund Pending' && (
+                    <button
+                      type="button"
+                      onClick={() => handleMarkRefundCompleted(selectedOrder)}
+                      className="mt-2 w-full py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                    >
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Mark Refund as Completed</span>
+                    </button>
+                  )}
                 </div>
 
                 <div>
@@ -708,9 +778,28 @@ export const DeliveriesManager: React.FC<DeliveriesManagerProps> = ({
                       {order.orderStatus}
                     </span>
 
-                    <span className="px-2.5 py-1 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200 text-xs font-extrabold font-mono">
-                      ₹{order.totalAmount.toLocaleString('en-IN')} ({order.paymentMethod})
+                    <span className={`px-2.5 py-1 rounded-lg border text-xs font-extrabold font-mono ${
+                      order.paymentStatus === 'Refund Pending'
+                        ? 'bg-amber-100 text-amber-900 border-amber-300 font-bold'
+                        : order.paymentStatus === 'Refund Completed'
+                        ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold'
+                        : order.paymentStatus === 'Cancelled'
+                        ? 'bg-rose-100 text-rose-900 border-rose-300'
+                        : 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                    }`}>
+                      ₹{order.totalAmount.toLocaleString('en-IN')} ({order.paymentMethod} • {order.paymentStatus})
                     </span>
+
+                    {order.paymentStatus === 'Refund Pending' && (
+                      <button
+                        onClick={() => handleMarkRefundCompleted(order)}
+                        className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs flex items-center gap-1 transition-all shadow-xs cursor-pointer"
+                        title="Click to mark refund as processed and completed"
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        <span>Process Refund</span>
+                      </button>
+                    )}
 
                     <button
                       onClick={() => setSelectedOrder(order)}

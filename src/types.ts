@@ -133,7 +133,7 @@ export interface UserOrder {
   totalAmount: number;
   shippingAddress: UserAddress;
   paymentMethod: 'UPI' | 'CARD' | 'NET_BANKING' | 'COD' | 'GST_PO';
-  paymentStatus: 'PAID' | 'PENDING' | 'COD_CONFIRMED';
+  paymentStatus: 'PAID' | 'PENDING' | 'COD_CONFIRMED' | 'Refund Pending' | 'Refund Completed' | 'Cancelled';
   orderStatus: 'Processing' | 'Shipped' | 'Out for Delivery' | 'Delivered' | 'Cancelled';
   trackingNumber?: string;
   courierPartner?: string;

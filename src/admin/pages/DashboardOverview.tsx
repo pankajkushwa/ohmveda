@@ -68,7 +68,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
     const shortlistedApplicants = jobApps.filter((a) => a.status === 'Shortlisted' || a.status === 'Interview').length;
     const hiredApplicants = jobApps.filter((a) => a.status === 'Hired' || a.status === 'Selected').length;
 
-    // Inventory Alerts
+    // Inventory Alerts & Value
+    const totalInventoryValue = storeItems.reduce((acc, item) => acc + ((item.price || 0) * (item.stock || 0)), 0);
     const lowStockItems = storeItems.filter((i) => i.stock <= 5);
     const outOfStockItems = storeItems.filter((i) => !i.inStock || i.stock === 0);
 
@@ -84,6 +85,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       pendingApplicants,
       shortlistedApplicants,
       hiredApplicants,
+      totalInventoryValue,
       lowStockCount: lowStockItems.length,
       outOfStockCount: outOfStockItems.length,
       totalProducts: products.length,
@@ -206,7 +208,7 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       </div>
 
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* Total Net Revenue */}
         <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
@@ -220,6 +222,32 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
             <p className="text-xs text-slate-500 mt-1 flex items-center gap-1 font-medium">
               <span className="text-emerald-600 font-bold">Gross ₹{stats.grossRevenue.toLocaleString('en-IN')}</span>
             </p>
+          </div>
+        </div>
+
+        {/* Total Store Inventory Value (INR) */}
+        <div 
+          onClick={() => setActiveTab('store')}
+          className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-all cursor-pointer group hover:border-purple-300"
+          title="Click to view & manage store inventory"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-slate-500 uppercase font-mono tracking-wider">Store Inventory Value</span>
+            <div className="p-2.5 rounded-2xl bg-purple-50 text-purple-600 border border-purple-100 group-hover:scale-105 transition-transform">
+              <Box className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <h3 className="text-2xl font-black text-purple-950 tracking-tight">₹{stats.totalInventoryValue.toLocaleString('en-IN')}</h3>
+            <div className="flex items-center gap-1.5 mt-1 text-[11px] font-medium text-slate-600">
+              <span className="text-purple-700 font-extrabold">{stats.totalStoreItems} Hardware SKUs</span>
+              {stats.lowStockCount > 0 && (
+                <>
+                  <span>•</span>
+                  <span className="text-amber-600 font-bold">{stats.lowStockCount} Low</span>
+                </>
+              )}
+            </div>
           </div>
         </div>
 

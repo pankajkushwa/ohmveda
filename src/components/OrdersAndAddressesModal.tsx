@@ -50,11 +50,14 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
   const handleConfirmCancelOrder = () => {
     if (!orderToCancel) return;
 
+    const isOnlinePayment = orderToCancel.paymentMethod !== 'COD';
+    const newPaymentStatus = isOnlinePayment ? 'Refund Pending' : 'Cancelled';
+
     const updatedOrder: UserOrder = {
       ...orderToCancel,
       orderStatus: 'Cancelled',
-      paymentStatus: orderToCancel.paymentStatus === 'Paid' ? 'Refund Pending' : 'Cancelled',
-      adminDispatchNotes: `Cancelled by customer on ${new Date().toLocaleDateString('en-IN')}. Reason: ${cancelReason}`,
+      paymentStatus: newPaymentStatus,
+      adminDispatchNotes: `Cancelled by customer on ${new Date().toLocaleDateString('en-IN')}. Reason: ${cancelReason}. ${isOnlinePayment ? 'Refund Pending (7 Working Days)' : ''}`,
     };
 
     const updatedList = updateStoredUserOrder(updatedOrder);
@@ -553,7 +556,15 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
                     <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
                       <span className="text-[10px] text-slate-400 font-bold uppercase block font-mono">Payment Status</span>
                       <p className="text-xs font-bold text-slate-900 mt-0.5">{selectedOrder.paymentMethod}</p>
-                      <span className="text-[10px] text-emerald-700 font-bold uppercase">{selectedOrder.paymentStatus}</span>
+                      <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded inline-block mt-0.5 ${
+                        selectedOrder.paymentStatus === 'Refund Pending'
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                          : selectedOrder.paymentStatus === 'Refund Completed'
+                          ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                          : selectedOrder.paymentStatus === 'Cancelled'
+                          ? 'bg-red-100 text-red-900 border border-red-300'
+                          : 'text-emerald-700 bg-emerald-50'
+                      }`}>{selectedOrder.paymentStatus}</span>
                     </div>
 
                     <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
@@ -566,6 +577,30 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
                       <p className="text-xs font-bold text-slate-900 mt-0.5">₹{selectedOrder.gstAmount.toLocaleString()}</p>
                     </div>
                   </div>
+
+                  {selectedOrder.paymentStatus === 'Refund Pending' && (
+                    <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-xl flex items-start gap-3 text-amber-950 text-xs shadow-2xs">
+                      <Clock className="w-4 h-4 text-amber-600 shrink-0 mt-0.5 animate-pulse" />
+                      <div>
+                        <h4 className="font-black text-amber-950">Refund Pending — Processing within 7 Working Days</h4>
+                        <p className="text-[11px] text-amber-900 mt-0.5 leading-relaxed">
+                          Your order cancellation was received. As this order was paid online via <strong>{selectedOrder.paymentMethod}</strong>, your refund of <strong>₹{selectedOrder.totalAmount.toLocaleString('en-IN')}</strong> will be credited directly to your original payment account within <strong>7 working days</strong>.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedOrder.paymentStatus === 'Refund Completed' && (
+                    <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-xl flex items-start gap-3 text-emerald-950 text-xs shadow-2xs">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-black text-emerald-950">Refund Processed & Completed</h4>
+                        <p className="text-[11px] text-emerald-900 mt-0.5 leading-relaxed">
+                          Your refund of <strong>₹{selectedOrder.totalAmount.toLocaleString('en-IN')}</strong> has been successfully credited back to your original <strong>{selectedOrder.paymentMethod}</strong> payment account.
+                        </p>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Courier & Delivery Status Tracking Section */}
                   <div className="p-4 rounded-xl bg-blue-50/80 border border-blue-200 space-y-3 text-xs">
@@ -1524,9 +1559,21 @@ export const OrdersAndAddressesModal: React.FC<OrdersAndAddressesModalProps> = (
               </div>
             </div>
 
-            <p className="text-xs text-slate-600 leading-relaxed">
-              Are you sure you want to cancel this hardware order? Once cancelled, dispatch will be halted. If payment was completed, a refund request will be logged automatically.
-            </p>
+            {orderToCancel.paymentMethod !== 'COD' ? (
+              <div className="p-3.5 bg-amber-50 border border-amber-300 rounded-2xl text-xs text-amber-950 leading-relaxed space-y-1">
+                <p className="font-black text-amber-950 flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span>Online Payment Refund Notice</span>
+                </p>
+                <p className="text-[11px] text-amber-900">
+                  As this order was paid via <strong>{orderToCancel.paymentMethod}</strong>, your full refund of <strong>₹{orderToCancel.totalAmount.toLocaleString('en-IN')}</strong> will be done within <strong>7 working days</strong>. The status will update to <strong>Refund Pending</strong> upon cancellation.
+                </p>
+              </div>
+            ) : (
+              <p className="text-xs text-slate-600 leading-relaxed">
+                Are you sure you want to cancel this Cash on Delivery order? Once cancelled, dispatch will be halted.
+              </p>
+            )}
 
             <div className="space-y-1.5">
               <label className="text-xs font-bold text-slate-700 block font-mono">Cancellation Reason:</label>
