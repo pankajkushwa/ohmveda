@@ -62,6 +62,10 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       .reduce((acc, o) => acc + (o.totalAmount || 0), 0);
     const cancelledRevenue = cancelledOrders.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
 
+    const onlineRefundOrders = cancelledOrders.filter((o) => o.paymentMethod !== 'COD');
+    const onlineRefundRevenue = onlineRefundOrders.reduce((acc, o) => acc + (o.totalAmount || 0), 0);
+    const codCancelledCount = cancelledOrders.filter((o) => o.paymentMethod === 'COD').length;
+
     // Job Applicants Metrics
     const totalApplicants = jobApps.length;
     const pendingApplicants = jobApps.filter((a) => a.status === 'New' || a.status === 'Under Review' || a.status === 'Pending').length;
@@ -81,6 +85,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
       grossRevenue,
       netRevenue,
       cancelledRevenue,
+      onlineRefundRevenue,
+      codCancelledCount,
       totalApplicants,
       pendingApplicants,
       shortlistedApplicants,
@@ -282,7 +288,13 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
           <div className="mt-3">
             <h3 className="text-2xl font-black text-slate-900 tracking-tight">{stats.cancelledCount}</h3>
             <p className="text-xs text-red-600 mt-1 font-bold">
-              ₹{stats.cancelledRevenue.toLocaleString('en-IN')} Refund/Value
+              {stats.cancelledCount === 0 ? (
+                'No Cancelled Orders'
+              ) : stats.onlineRefundRevenue > 0 ? (
+                `₹${stats.onlineRefundRevenue.toLocaleString('en-IN')} Online Refund` + (stats.codCancelledCount > 0 ? ` (${stats.codCancelledCount} COD - No refund)` : '')
+              ) : (
+                'No refund due to COD order'
+              )}
             </p>
           </div>
         </div>

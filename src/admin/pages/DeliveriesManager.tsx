@@ -502,6 +502,13 @@ export const DeliveriesManager: React.FC<DeliveriesManagerProps> = ({
                       <span>Mark Refund as Completed</span>
                     </button>
                   )}
+
+                  {selectedOrder.paymentMethod === 'COD' && (selectedOrder.orderStatus === 'Cancelled' || editStatus === 'Cancelled') && (
+                    <div className="mt-2 p-2.5 bg-slate-100 border border-slate-300 rounded-xl text-xs text-slate-800 font-medium">
+                      <span className="font-bold text-slate-900 block">No refund due to COD order</span>
+                      No upfront online payment was collected for this Cash on Delivery order.
+                    </div>
+                  )}
                 </div>
 
                 <div>
@@ -783,11 +790,17 @@ export const DeliveriesManager: React.FC<DeliveriesManagerProps> = ({
                         ? 'bg-amber-100 text-amber-900 border-amber-300 font-bold'
                         : order.paymentStatus === 'Refund Completed'
                         ? 'bg-emerald-100 text-emerald-900 border-emerald-300 font-bold'
+                        : order.orderStatus === 'Cancelled' && order.paymentMethod === 'COD'
+                        ? 'bg-slate-100 text-slate-800 border-slate-300'
                         : order.paymentStatus === 'Cancelled'
                         ? 'bg-rose-100 text-rose-900 border-rose-300'
                         : 'bg-emerald-50 text-emerald-800 border-emerald-200'
                     }`}>
-                      ₹{order.totalAmount.toLocaleString('en-IN')} ({order.paymentMethod} • {order.paymentStatus})
+                      ₹{order.totalAmount.toLocaleString('en-IN')} ({order.paymentMethod} • {
+                        order.orderStatus === 'Cancelled' && order.paymentMethod === 'COD'
+                          ? 'No Refund Due (COD)'
+                          : order.paymentStatus
+                      })
                     </span>
 
                     {order.paymentStatus === 'Refund Pending' && (

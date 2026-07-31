@@ -644,10 +644,16 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                           ? 'bg-amber-100 text-amber-900 border border-amber-300'
                           : selectedOrder.paymentStatus === 'Refund Completed'
                           ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                          : selectedOrder.orderStatus === 'Cancelled' && selectedOrder.paymentMethod === 'COD'
+                          ? 'bg-slate-200 text-slate-800 border border-slate-300'
                           : selectedOrder.paymentStatus === 'Cancelled'
                           ? 'bg-red-100 text-red-900 border border-red-300'
                           : 'text-emerald-700 bg-emerald-50'
-                      }`}>{selectedOrder.paymentStatus}</span>
+                      }`}>
+                        {selectedOrder.orderStatus === 'Cancelled' && selectedOrder.paymentMethod === 'COD'
+                          ? 'No Refund Due (COD)'
+                          : selectedOrder.paymentStatus}
+                      </span>
                     </div>
 
                     <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200">
@@ -682,6 +688,18 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                         <h4 className="font-black text-sm text-emerald-950">Refund Processed & Completed</h4>
                         <p className="text-xs text-emerald-900 mt-1 leading-relaxed">
                           Your refund of <strong>₹{selectedOrder.totalAmount.toLocaleString('en-IN')}</strong> has been successfully credited back to your original <strong>{selectedOrder.paymentMethod}</strong> payment account.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedOrder.orderStatus === 'Cancelled' && selectedOrder.paymentMethod === 'COD' && (
+                    <div className="p-4 bg-slate-100 border border-slate-300 rounded-2xl flex items-start gap-3 text-slate-900 shadow-2xs">
+                      <XCircle className="w-5 h-5 text-slate-500 shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-black text-sm text-slate-950">Order Cancelled — No Refund Due (COD Order)</h4>
+                        <p className="text-xs text-slate-700 mt-1 leading-relaxed">
+                          This order was placed using <strong>Cash on Delivery (COD)</strong>. Since no upfront online payment was collected, no refund is due for this cancelled order.
                         </p>
                       </div>
                     </div>
