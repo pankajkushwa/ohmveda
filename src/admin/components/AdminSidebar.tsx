@@ -1,10 +1,11 @@
 import React from 'react';
 import { 
-  Box, Cpu, Layers, Briefcase, Image, UserCheck, Activity, X, Truck, LayoutDashboard
+  Box, Cpu, Layers, Briefcase, Image, UserCheck, Activity, X, Truck, LayoutDashboard, Mail
 } from 'lucide-react';
 
 export type AdminTab = 
   | 'dashboard'
+  | 'inquiries'
   | 'products' 
   | 'store' 
   | 'categories' 
@@ -21,6 +22,7 @@ interface AdminSidebarProps {
   storeCount: number;
   jobAppsCount: number;
   ordersCount?: number;
+  inquiriesCount?: number;
   mobileOpen: boolean;
   setMobileOpen: (open: boolean) => void;
 }
@@ -32,11 +34,13 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
   storeCount,
   jobAppsCount,
   ordersCount = 0,
+  inquiriesCount = 0,
   mobileOpen,
   setMobileOpen,
 }) => {
   const navItems: { id: AdminTab; label: string; icon: React.FC<{ className?: string }>; badge?: number }[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'inquiries', label: 'Inquiries & Proposals', icon: Mail, badge: inquiriesCount },
     { id: 'products', label: 'Products', icon: Box, badge: productsCount },
     { id: 'store', label: 'Store Inventory', icon: Cpu, badge: storeCount },
     { id: 'categories', label: 'Categories Manager', icon: Layers },

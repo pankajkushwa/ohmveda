@@ -3,7 +3,7 @@ import {
   JobRole, ProductCategory, StoreCategory, StoreItem, TurnkeyProduct, UserProfile 
 } from '../types';
 import { 
-  DEFAULT_PRODUCT_CATEGORIES, DEFAULT_STORE_CATEGORIES, getStoredJobApplications, getStoredUserOrders, isAuthorizedAdminEmail 
+  DEFAULT_PRODUCT_CATEGORIES, DEFAULT_STORE_CATEGORIES, getStoredJobApplications, getStoredUserOrders, getStoredLeadInquiries, isAuthorizedAdminEmail 
 } from '../services/dataStorage';
 
 import { AdminSidebar, AdminTab } from './components/AdminSidebar';
@@ -20,6 +20,7 @@ import { BrandingManager } from './pages/BrandingManager';
 import { AdminAccountsManager } from './pages/AdminAccountsManager';
 import { AdminLogsManager } from './pages/AdminLogsManager';
 import { DashboardOverview } from './pages/DashboardOverview';
+import { InquiriesManager } from './pages/InquiriesManager';
 import { AdminLoginView } from './components/AdminLoginView';
 
 export interface AdminDashboardProps {
@@ -99,6 +100,8 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   // Counts for badge chips
   const jobAppsCount = getStoredJobApplications().length;
   const ordersCount = getStoredUserOrders().length;
+  const leadInquiries = getStoredLeadInquiries();
+  const inquiriesCount = leadInquiries.filter((i) => i.status === 'NEW').length || leadInquiries.length;
 
   // IF NOT LOGGED IN OR NOT AUTHORIZED ADMIN: Show standalone AdminLoginView
   if (!userProfile || !isAuthorized) {
@@ -121,6 +124,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
         storeCount={storeItems.length}
         jobAppsCount={jobAppsCount}
         ordersCount={ordersCount}
+        inquiriesCount={inquiriesCount}
         mobileOpen={mobileOpen}
         setMobileOpen={setMobileOpen}
       />
@@ -144,6 +148,13 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               jobRoles={jobRoles}
               setActiveTab={setActiveTab}
               showToast={showToast}
+            />
+          )}
+
+          {activeTab === 'inquiries' && (
+            <InquiriesManager
+              showToast={showToast}
+              openDeleteConfirm={openDeleteConfirm}
             />
           )}
 

@@ -1,4 +1,4 @@
-import { CareerPageSettings, CompanyContactInfo, JobApplication, JobRole, ProductCategory, SocialLink, StoreCategory, StoreItem, StoreQaItem, StoreReviewItem, TechnicalDocument, TurnkeyProduct, UserAddress, UserOrder, UserProfile } from '../types';
+import { CareerPageSettings, CompanyContactInfo, JobApplication, JobRole, LeadInquiry, ProductCategory, SocialLink, StoreCategory, StoreItem, StoreQaItem, StoreReviewItem, TechnicalDocument, TurnkeyProduct, UserAddress, UserOrder, UserProfile } from '../types';
 import { STORE_PRODUCTS } from '../data/storeProducts';
 import { INITIAL_TURNKEY_PRODUCTS } from '../data/turnkeyProducts';
 import { INITIAL_JOB_ROLES } from '../data/careersData';
@@ -27,6 +27,7 @@ const STORAGE_KEYS = {
   USER_ADDRESSES: 'ohmveda_user_addresses_v1',
   USER_ORDERS: 'ohmveda_user_orders_v1',
   DOCUMENT_BLOBS: 'ohmveda_doc_blobs_v1',
+  LEAD_INQUIRIES: 'ohmveda_lead_inquiries_v1',
 };
 
 // Document Blob Cache Helpers for safe storage without hitting Firestore 1MB document size limit
@@ -1625,3 +1626,139 @@ export function updateStoredUserOrder(order: UserOrder): UserOrder[] {
   }
   return updated;
 }
+
+// =========================================================================
+// LEAD INQUIRIES & PROJECT PROPOSALS STORAGE
+// =========================================================================
+
+export const INITIAL_LEAD_INQUIRIES: LeadInquiry[] = [
+  {
+    id: 'lead-1001',
+    source: 'project_modal',
+    name: 'Pankaj Kushwaha',
+    email: 'pankajkushwaha469.pk@gmail.com',
+    phone: '+91 9904695383',
+    company: 'Electroworld-the project maker',
+    subject: 'Hardware & IoT Custom Project',
+    projectCategory: 'connected_product',
+    budgetRange: '₹50,000 - ₹1,50,000',
+    timeline: '1 Month',
+    description: 'Looking to develop a smart IoT connected controller with custom PCB, Wi-Fi telemetry, and web dashboard integration.',
+    selectedModules: ['Custom PCB Hardware', 'Wi-Fi / BLE Wireless', 'Web Dashboard UI'],
+    status: 'NEW',
+    adminNotes: 'Direct project inquiry received via website.',
+    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+  },
+  {
+    id: 'lead-1002',
+    source: 'contact_form',
+    name: 'Vikram Patel',
+    email: 'vikram.p@electrochip.in',
+    phone: '+91 98250 11223',
+    company: 'ElectroChip Innovations',
+    subject: 'Hardware Development',
+    projectCategory: 'electronics_embedded',
+    description: 'We need high-density 4-layer PCB design and MCU firmware support for our industrial automation sensor array.',
+    status: 'IN_REVIEW',
+    adminNotes: 'Assigned to Hardware R&D Lead for feasibility review.',
+    createdAt: new Date(Date.now() - 3600000 * 24).toISOString(),
+  }
+];
+
+export function getStoredLeadInquiries(): LeadInquiry[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.LEAD_INQUIRIES);
+    if (raw !== null) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.error('Error reading lead inquiries:', err);
+  }
+  return INITIAL_LEAD_INQUIRIES;
+}
+
+export function saveStoredLeadInquiry(inquiryData: Partial<LeadInquiry> & { name: string; email: string; description: string }): LeadInquiry {
+  const current = getStoredLeadInquiries();
+  const id = inquiryData.id || `lead-${Date.now()}`;
+  const newInquiry: LeadInquiry = {
+    id,
+    source: inquiryData.source || 'contact_form',
+    name: inquiryData.name,
+    email: inquiryData.email,
+    phone: inquiryData.phone || '',
+    company: inquiryData.company || '',
+    subject: inquiryData.subject || 'Project Inquiry',
+    projectCategory: inquiryData.projectCategory || 'connected_product',
+    budgetRange: inquiryData.budgetRange || 'Not specified',
+    timeline: inquiryData.timeline || 'Not specified',
+    description: inquiryData.description,
+    selectedModules: inquiryData.selectedModules || [],
+    status: inquiryData.status || 'NEW',
+    adminNotes: inquiryData.adminNotes || '',
+    createdAt: inquiryData.createdAt || new Date().toISOString(),
+  };
+
+  const updated = [newInquiry, ...current.filter((i) => i.id !== id)];
+  try {
+    localStorage.setItem(STORAGE_KEYS.LEAD_INQUIRIES, JSON.stringify(updated));
+    setDoc(doc(db, 'lead_inquiries', newInquiry.id), sanitizeForFirestore(newInquiry), { merge: true }).catch((err) =>
+      console.error('Firestore save lead inquiry error:', err)
+    );
+    window.dispatchEvent(new Event('ohmveda_lead_inquiries_updated'));
+    
+    addAdminLog({
+      action: 'ADD',
+      target: 'BRANDING',
+      title: `New Inquiry Received (#${newInquiry.id})`,
+      details: `${newInquiry.name} (${newInquiry.email}) submitted a new inquiry via ${newInquiry.source.replace('_', ' ')}.`,
+    });
+  } catch (err) {
+    console.error('Error saving lead inquiry:', err);
+  }
+  return newInquiry;
+}
+
+export function updateLeadInquiryStatus(id: string, status: LeadInquiry['status'], adminNotes?: string): LeadInquiry[] {
+  const current = getStoredLeadInquiries();
+  const updated = current.map((item) => {
+    if (item.id === id) {
+      return {
+        ...item,
+        status,
+        adminNotes: adminNotes !== undefined ? adminNotes : item.adminNotes,
+      };
+    }
+    return item;
+  });
+
+  try {
+    localStorage.setItem(STORAGE_KEYS.LEAD_INQUIRIES, JSON.stringify(updated));
+    const targetItem = updated.find((i) => i.id === id);
+    if (targetItem) {
+      setDoc(doc(db, 'lead_inquiries', id), sanitizeForFirestore(targetItem), { merge: true }).catch((err) =>
+        console.error('Firestore update lead inquiry error:', err)
+      );
+    }
+    window.dispatchEvent(new Event('ohmveda_lead_inquiries_updated'));
+  } catch (err) {
+    console.error('Error updating lead inquiry:', err);
+  }
+  return updated;
+}
+
+export function deleteLeadInquiry(id: string): LeadInquiry[] {
+  const current = getStoredLeadInquiries();
+  const updated = current.filter((item) => item.id !== id);
+  try {
+    localStorage.setItem(STORAGE_KEYS.LEAD_INQUIRIES, JSON.stringify(updated));
+    deleteFirestoreDoc('lead_inquiries', id);
+    window.dispatchEvent(new Event('ohmveda_lead_inquiries_updated'));
+  } catch (err) {
+    console.error('Error deleting lead inquiry:', err);
+  }
+  return updated;
+}
+

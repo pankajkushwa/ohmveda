@@ -2,10 +2,10 @@ import React, { useState, useMemo } from 'react';
 import { 
   TrendingUp, ShoppingBag, Truck, XCircle, Briefcase, Box, 
   Cpu, DollarSign, Calendar, Filter, ArrowUpRight, CheckCircle2, 
-  AlertTriangle, ArrowRight, UserCheck, Clock, Layers, RefreshCw, BarChart2, Eye
+  AlertTriangle, ArrowRight, UserCheck, Clock, Layers, RefreshCw, BarChart2, Eye, Mail
 } from 'lucide-react';
-import { JobRole, StoreItem, TurnkeyProduct, UserOrder, JobApplication } from '../../types';
-import { getStoredJobApplications, getStoredUserOrders } from '../../services/dataStorage';
+import { JobRole, StoreItem, TurnkeyProduct, UserOrder, JobApplication, LeadInquiry } from '../../types';
+import { getStoredJobApplications, getStoredUserOrders, getStoredLeadInquiries } from '../../services/dataStorage';
 import { AdminTab } from '../components/AdminSidebar';
 
 interface DashboardOverviewProps {
@@ -26,6 +26,8 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   // Real-time Data Fetches
   const orders: UserOrder[] = useMemo(() => getStoredJobApplications ? getStoredUserOrders() : [], []);
   const jobApps: JobApplication[] = useMemo(() => getStoredJobApplications(), []);
+  const leadInquiries: LeadInquiry[] = useMemo(() => getStoredLeadInquiries(), []);
+  const newInquiriesCount = useMemo(() => leadInquiries.filter((i) => i.status === 'NEW').length, [leadInquiries]);
 
   // Filtered Alert Items for Store Inventory (Low stock <= 5 or Out of Stock) sorted by lowest stock first
   const alertItems = useMemo(() => {
@@ -187,7 +189,27 @@ export const DashboardOverview: React.FC<DashboardOverviewProps> = ({
   return (
     <div className="space-y-6 pb-12 animate-fadeIn">
       {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        {/* Lead Inquiries & Proposals */}
+        <div 
+          onClick={() => setActiveTab('inquiries')}
+          className="bg-white rounded-3xl p-5 border border-blue-200 shadow-xs hover:shadow-md transition-all cursor-pointer group hover:border-blue-400"
+          title="Click to view & manage client lead inquiries"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-bold text-blue-600 uppercase font-mono tracking-wider">Inquiries & Leads</span>
+            <div className="p-2.5 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 group-hover:scale-105 transition-transform">
+              <Mail className="w-5 h-5" />
+            </div>
+          </div>
+          <div className="mt-3">
+            <h3 className="text-2xl font-black text-slate-900 tracking-tight">{leadInquiries.length}</h3>
+            <p className="text-xs text-blue-600 mt-1 flex items-center gap-1 font-bold">
+              <span>{newInquiriesCount} New Unread</span>
+              <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+            </p>
+          </div>
+        </div>
         {/* Total Net Revenue */}
         <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">

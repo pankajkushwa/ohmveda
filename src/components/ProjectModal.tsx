@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Zap, ArrowRight, CheckCircle2, Copy, Check, Send, Cpu, Code2, ShoppingBag } from 'lucide-react';
+import { X, Zap, ArrowRight, CheckCircle2, Copy, Check, Send, Cpu, Code2, ShoppingBag, ExternalLink, Mail, Loader2 } from 'lucide-react';
 import { ProjectInquiry, CartItem } from '../types';
 import { COMPANY_INFO } from '../data/companyData';
+import { saveStoredLeadInquiry } from '../services/dataStorage';
+import { sendInquiryNotificationEmail, getGmailComposeUrl, getMailtoUrl } from '../services/emailService';
 
 interface ProjectModalProps {
   isOpen: boolean;
@@ -36,25 +38,74 @@ export const ProjectModal: React.FC<ProjectModalProps> = ({
 
   const [submitted, setSubmitted] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [emailStatusMsg, setEmailStatusMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    if (initialCategory) {
-      setFormData((prev) => ({
-        ...prev,
-        projectCategory: initialCategory as any,
-        selectedModules: initialModules,
-      }));
+    if (isOpen) {
+      setSubmitted(false);
+      setIsSendingEmail(false);
+      setEmailStatusMsg(null);
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        company: '',
+        projectCategory: (initialCategory as any) || 'connected_product',
+        budgetRange: '₹50,000 - ₹1,50,000',
+        timeline: '1 Month',
+        description: '',
+        selectedModules: initialModules || [],
+      });
     }
-  }, [initialCategory, initialModules]);
+  }, [isOpen, initialCategory, initialModules]);
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.name || !formData.email) return;
+
+    setIsSendingEmail(true);
+
+    // 1. Save lead inquiry to persistent storage for admin panel inbox
+    saveStoredLeadInquiry({
+      source: 'project_modal',
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      company: formData.company,
+      subject: `Project Proposal: ${formData.projectCategory.replace('_', ' ').toUpperCase()}`,
+      projectCategory: formData.projectCategory,
+      budgetRange: formData.budgetRange,
+      timeline: formData.timeline,
+      description: formData.description || 'Custom project consultation request.',
+      selectedModules: formData.selectedModules || [],
+    });
+
     if (cart && cart.length > 0 && onOrderPlaced) {
       onOrderPlaced(cart);
     }
+
     setSubmitted(true);
+
+    // 2. Dispatch automated email in background
+    const emailRes = await sendInquiryNotificationEmail({
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      company: formData.company,
+      subject: `Project Brief Proposal from ${formData.name}`,
+      projectCategory: formData.projectCategory,
+      budgetRange: formData.budgetRange,
+      timeline: formData.timeline,
+      description: formData.description || 'Custom project consultation request.',
+      selectedModules: formData.selectedModules || [],
+      source: 'Project Proposal Modal',
+    });
+
+    setIsSendingEmail(false);
+    setEmailStatusMsg(emailRes.message);
   };
 
   const generateBriefText = () => {
@@ -180,46 +231,43 @@ Date: ${new Date().toLocaleDateString()}
           </div>
         ) : (
           /* Confirmation Screen */
-          <div className="text-center space-y-6 py-4">
+          <div className="text-center space-y-6 py-6">
             <div className="w-16 h-16 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
-              <CheckCircle2 className="w-10 h-10" />
+              <CheckCircle2 className="w-10 h-10 text-emerald-600" />
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-2xl font-bold text-slate-900">Project Brief Generated!</h3>
-              <p className="text-xs text-slate-600 max-w-md mx-auto">
-                Thank you, <span className="text-blue-600 font-bold">{formData.name}</span>. Our engineering team at OhmVeda Technologies has received your project details.
+              <h3 className="text-2xl font-black text-slate-900 tracking-tight">Proposal Submitted!</h3>
+              <p className="text-sm font-semibold text-emerald-700 max-w-md mx-auto bg-emerald-50 py-2.5 px-4 rounded-xl border border-emerald-200/80">
+                Proposal submitted! Our team will contact you soon.
+              </p>
+              <p className="text-xs text-slate-500 max-w-md mx-auto pt-1">
+                Thank you, <span className="text-slate-900 font-bold">{formData.name}</span>. Your project brief has been registered in our pipeline and dispatched directly to engineering.
               </p>
             </div>
 
-            <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 text-left font-mono text-xs text-slate-800 max-h-48 overflow-y-auto whitespace-pre-wrap shadow-2xs">
-              {generateBriefText()}
+            {/* Email Dispatch Status Banner */}
+            <div className="p-3 bg-emerald-50/70 border border-emerald-200/80 rounded-xl text-center text-xs flex items-center justify-center gap-2 text-emerald-800 font-bold">
+              {isSendingEmail ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                  <span>Sending email...</span>
+                </>
+              ) : (
+                <>
+                  <Mail className="w-4 h-4 text-emerald-600" />
+                  <span>Email sent</span>
+                </>
+              )}
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <button
-                onClick={handleCopyBrief}
-                className="px-5 py-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-xs font-bold text-slate-800 flex items-center justify-center gap-2 border border-slate-200"
-              >
-                {copied ? <Check className="w-4 h-4 text-emerald-600" /> : <Copy className="w-4 h-4 text-slate-600" />}
-                <span>{copied ? 'Copied to Clipboard!' : 'Copy Brief Details'}</span>
-              </button>
-
-              <a
-                href={`mailto:${COMPANY_INFO.contactEmail}?subject=Project%20Inquiry%20-%20${encodeURIComponent(formData.name)}&body=${encodeURIComponent(generateBriefText())}`}
-                className="px-5 py-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white flex items-center justify-center gap-2 shadow-sm"
-              >
-                <Send className="w-4 h-4" />
-                <span>Email Directly to Engineering</span>
-              </a>
-            </div>
-
-            <div className="pt-4 border-t border-slate-200">
+            {/* Main Action Button */}
+            <div className="pt-2">
               <button
                 onClick={onClose}
-                className="text-xs text-slate-500 hover:text-slate-800 font-medium"
+                className="w-full sm:w-auto px-8 py-3.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs shadow-md transition-all cursor-pointer"
               >
-                Return to Website
+                Back to Website
               </button>
             </div>
           </div>

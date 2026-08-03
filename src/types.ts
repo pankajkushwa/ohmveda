@@ -218,6 +218,24 @@ export interface ProjectInquiry {
   selectedModules: string[];
 }
 
+export interface LeadInquiry {
+  id: string;
+  source: 'contact_form' | 'project_modal' | 'project_configurator';
+  name: string;
+  email: string;
+  phone?: string;
+  company?: string;
+  subject?: string;
+  projectCategory?: string;
+  budgetRange?: string;
+  timeline?: string;
+  description: string;
+  selectedModules?: string[];
+  status: 'NEW' | 'IN_REVIEW' | 'CONTACTED' | 'PROPOSAL_SENT' | 'CONVERTED' | 'CLOSED';
+  adminNotes?: string;
+  createdAt: string;
+}
+
 export interface TurnkeyProduct {
   id: string;
   title: string;

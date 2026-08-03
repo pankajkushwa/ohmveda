@@ -3,7 +3,7 @@ import {
   X, Package, MapPin, Printer, Plus, Trash2, Edit3, Clock, Truck, 
   ShieldCheck, ArrowRight, ExternalLink, ChevronRight, CheckCircle2,
   Building2, Receipt, User, Search, RefreshCw, FileText, Check, AlertCircle,
-  Copy, ArrowLeft, Box, Ban
+  Copy, ArrowLeft, Box, Ban, XCircle
 } from 'lucide-react';
 import { UserAddress, UserOrder, UserProfile, SeparateBillingAddress } from '../types';
 import { 
