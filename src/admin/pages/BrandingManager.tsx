@@ -2,13 +2,16 @@ import React, { useState } from 'react';
 import { 
   Image, Upload, Save, RefreshCw, CheckCircle2, Mail, Phone, MapPin, Building,
   Share2, Globe, Linkedin, Github, Youtube, Twitter, Instagram, Facebook, 
-  MessageCircle, MessageSquare, Send, Plus, Trash2, ExternalLink, Sliders
+  MessageCircle, MessageSquare, Send, Plus, Trash2, ExternalLink, Sliders, Type
 } from 'lucide-react';
 import { OhmVedaLogo } from '../../components/OhmVedaLogo';
 import { 
   addAdminLog, getStoredCustomLogo, saveStoredCustomLogo,
+  getStoredDefaultEmblemUrl, saveStoredDefaultEmblemUrl,
+  getStoredEmblemStyle, saveStoredEmblemStyle, EmblemStyleOption,
   getStoredCompanyContact, saveStoredCompanyContact, DEFAULT_COMPANY_CONTACT,
-  getStoredSocialLinks, saveStoredSocialLinks, DEFAULT_SOCIAL_LINKS
+  getStoredSocialLinks, saveStoredSocialLinks, DEFAULT_SOCIAL_LINKS,
+  getStoredBrandTextSettings, saveStoredBrandTextSettings, BrandTextSettings, DEFAULT_BRAND_TEXT_SETTINGS
 } from '../../services/dataStorage';
 import { CompanyContactInfo, SocialLink } from '../../types';
 
@@ -38,6 +41,92 @@ export const BrandingManager: React.FC<BrandingManagerProps> = ({ showToast }) =
   const [logoInputUrl, setLogoInputUrl] = useState<string>(getStoredCustomLogo() || '');
   const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(getStoredCustomLogo());
   const [isUploadingLogo, setIsUploadingLogo] = useState<boolean>(false);
+  const [activeEmblemStyle, setActiveEmblemStyle] = useState<EmblemStyleOption>(getStoredEmblemStyle());
+
+  // Default Emblem State (Custom Image or Vector Emblem)
+  const [currentDefaultEmblem, setCurrentDefaultEmblem] = useState<string | null>(getStoredDefaultEmblemUrl());
+  const [defaultEmblemInputUrl, setDefaultEmblemInputUrl] = useState<string>(getStoredDefaultEmblemUrl() || '');
+  const [isUploadingDefaultEmblem, setIsUploadingDefaultEmblem] = useState<boolean>(false);
+
+  const handleApplyDefaultEmblemUrl = (urlToApply: string) => {
+    if (!urlToApply.trim()) {
+      handleResetDefaultEmblem();
+      return;
+    }
+    setCurrentDefaultEmblem(urlToApply);
+    saveStoredDefaultEmblemUrl(urlToApply);
+    addAdminLog({
+      action: 'UPDATE',
+      target: 'BRANDING',
+      title: 'Updated Default Emblem Image',
+      details: 'Saved custom default emblem image/SVG to database.',
+    });
+    showToast('Default emblem logo image updated in database!', 'success');
+  };
+
+  const handleDefaultEmblemFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      showToast('Image file size must be under 2MB.', 'error');
+      return;
+    }
+
+    setIsUploadingDefaultEmblem(true);
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64Url = reader.result as string;
+      setDefaultEmblemInputUrl(base64Url);
+      handleApplyDefaultEmblemUrl(base64Url);
+      setIsUploadingDefaultEmblem(false);
+    };
+    reader.onerror = () => {
+      showToast('Failed to read default emblem image file.', 'error');
+      setIsUploadingDefaultEmblem(false);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleResetDefaultEmblem = () => {
+    setCurrentDefaultEmblem(null);
+    setDefaultEmblemInputUrl('');
+    saveStoredDefaultEmblemUrl(null);
+    addAdminLog({
+      action: 'UPDATE',
+      target: 'BRANDING',
+      title: 'Reset Default Emblem to Vector SVG',
+      details: 'Restored default vector emblem SVG.',
+    });
+    showToast('Default emblem restored to vector SVG emblem.', 'info');
+  };
+
+  // Brand Name Text Customizer State
+  const [brandTextForm, setBrandTextForm] = useState<BrandTextSettings>(getStoredBrandTextSettings());
+
+  const handleSaveBrandText = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    saveStoredBrandTextSettings(brandTextForm);
+    addAdminLog({
+      action: 'UPDATE',
+      target: 'BRANDING',
+      title: 'Updated Brand Name & Typography',
+      details: `Show Text: ${brandTextForm.showBrandText}, Text: "${brandTextForm.brandTextOhm}" + "${brandTextForm.brandTextVeda}"`,
+    });
+    showToast('Brand name & text settings saved successfully!', 'success');
+  };
+
+  const handleResetBrandText = () => {
+    setBrandTextForm(DEFAULT_BRAND_TEXT_SETTINGS);
+    saveStoredBrandTextSettings(DEFAULT_BRAND_TEXT_SETTINGS);
+    addAdminLog({
+      action: 'UPDATE',
+      target: 'BRANDING',
+      title: 'Reset Brand Name to Default',
+      details: 'Restored "OhmVeda" default brand text.',
+    });
+    showToast('Brand text restored to default "OhmVeda".', 'info');
+  };
 
   // Company Contact Info State
   const [contactForm, setContactForm] = useState<CompanyContactInfo>(getStoredCompanyContact());
@@ -50,6 +139,18 @@ export const BrandingManager: React.FC<BrandingManagerProps> = ({ showToast }) =
     url: '',
     iconName: 'Globe',
   });
+
+  const handleSaveEmblemStyle = (style: EmblemStyleOption) => {
+    setActiveEmblemStyle(style);
+    saveStoredEmblemStyle(style);
+    addAdminLog({
+      action: 'UPDATE',
+      target: 'BRANDING',
+      title: 'Updated Vector Brand Emblem Style',
+      details: `Selected ${style.toUpperCase()} vector emblem style.`,
+    });
+    showToast(`OhmVeda vector brand emblem set to ${style.replace('_', ' ').toUpperCase()}!`, 'success');
+  };
 
   const handleApplyLogoUrl = (urlToApply: string) => {
     if (!urlToApply.trim()) {
@@ -216,101 +317,387 @@ export const BrandingManager: React.FC<BrandingManagerProps> = ({ showToast }) =
 
   return (
     <div className="space-y-8">
-      {/* SECTION 1: LOGO & BRAND IDENTITY */}
+      {/* SECTION 1: LOGO IMAGE & BRAND NAME CUSTOMIZER */}
       <div className="space-y-6">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
           <h1 className="text-lg font-bold text-slate-900 flex items-center gap-2">
             <Image className="w-5 h-5 text-indigo-600" />
-            <span>Brand Identity & Logo Customizer</span>
+            <span>Brand Logo & Name Customizer</span>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Customize company logo rendered in header navigation, footer, and admin portal
+            Upload your custom emblem or full logo image, edit the brand name text, and toggle whether to display text alongside the logo image.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Customization Form */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-xs">
-            <h2 className="text-sm font-bold text-slate-900">Upload or Set Logo URL</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          {/* Left Column (7 cols): Image Upload & Text Customizer */}
+          <div className="lg:col-span-7 space-y-6">
 
-            {/* Direct File Upload */}
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-700">Option 1: Upload Image File</label>
-              <label className="flex flex-col items-center justify-center p-6 bg-slate-50 border-2 border-dashed border-slate-200 hover:border-indigo-500 rounded-xl cursor-pointer transition-colors group">
-                <Upload className="w-8 h-8 text-slate-400 group-hover:text-indigo-600 transition-colors mb-2" />
-                <span className="text-xs font-semibold text-slate-700">
-                  {isUploadingLogo ? 'Uploading Image...' : 'Click to select logo image'}
-                </span>
-                <span className="text-[10px] text-slate-400 mt-1">PNG, SVG, JPG or WebP (Max 2MB)</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleLogoFileUpload}
-                  className="hidden"
-                />
-              </label>
-            </div>
-
-            {/* Image URL Input */}
-            <div className="space-y-2 pt-2 border-t border-slate-200">
-              <label className="block text-xs font-bold text-slate-700">Option 2: Image Web Link (URL)</label>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="https://example.com/logo.png"
-                  value={logoInputUrl}
-                  onChange={(e) => {
-                    setLogoInputUrl(e.target.value);
-                    setLogoPreviewUrl(e.target.value);
-                  }}
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => handleApplyLogoUrl(logoInputUrl)}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-sm shadow-indigo-600/20 flex items-center gap-1 cursor-pointer"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>Save</span>
-                </button>
+            {/* Card 1: Logo / Emblem Image Uploader */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-xs">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Upload className="w-4 h-4 text-indigo-600" />
+                  <span>1. Emblem / Logo Image Uploader</span>
+                </h2>
+                {currentSavedLogo ? (
+                  <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-full font-bold">
+                    Custom Image Active
+                  </span>
+                ) : (
+                  <span className="text-[10px] bg-slate-100 text-slate-600 border border-slate-200 px-2.5 py-0.5 rounded-full font-bold">
+                    Default Vector Emblem Active
+                  </span>
+                )}
               </div>
-            </div>
 
-            {/* Reset Button */}
-            <div className="pt-2 border-t border-slate-200">
-              <button
-                type="button"
-                onClick={handleResetLogo}
-                className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold border border-slate-200 flex items-center justify-center gap-2 transition-colors cursor-pointer"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                <span>Reset to Default OhmVeda Logo</span>
-              </button>
-            </div>
-          </div>
+              {/* Direct File Upload Dropzone */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-slate-700">Option A: Upload Image File</label>
+                <label className="flex flex-col items-center justify-center p-6 bg-slate-50 border-2 border-dashed border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/30 rounded-xl cursor-pointer transition-all group">
+                  <Upload className="w-8 h-8 text-slate-400 group-hover:text-indigo-600 transition-colors mb-2" />
+                  <span className="text-xs font-semibold text-slate-700">
+                    {isUploadingLogo ? 'Uploading Image...' : 'Click or drag & drop image to upload'}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-1">Supports PNG, SVG, JPG, WebP (Max 2MB)</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleLogoFileUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
 
-          {/* Live Logo Preview Box */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-xs flex flex-col">
-            <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-              <span>Live Header Preview</span>
-            </h2>
-
-            <div className="flex-1 bg-white rounded-xl p-6 border border-slate-200 flex flex-col items-center justify-center min-h-[220px]">
-              <div className="text-[10px] text-slate-500 mb-4 uppercase tracking-widest font-mono">Header Navbar Mockup</div>
-              <div className="bg-white px-6 py-3 rounded-2xl border border-slate-200 shadow-md flex items-center justify-between w-full max-w-sm">
-                <OhmVedaLogo variant="light" />
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500"></div>
-                  <span className="text-[10px] text-slate-600 font-bold">Online</span>
+              {/* Image Web URL Input */}
+              <div className="space-y-2 pt-3 border-t border-slate-100">
+                <label className="block text-xs font-bold text-slate-700">Option B: Image Web Link (URL)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="https://example.com/logo.png"
+                    value={logoInputUrl}
+                    onChange={(e) => {
+                      setLogoInputUrl(e.target.value);
+                      setLogoPreviewUrl(e.target.value);
+                    }}
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handleApplyLogoUrl(logoInputUrl)}
+                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold shadow-sm shadow-indigo-600/20 flex items-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>Apply Logo</span>
+                  </button>
                 </div>
               </div>
-              <div className="text-xs text-slate-500 mt-4 text-center">
-                {currentSavedLogo ? (
-                  <span className="text-emerald-600 font-semibold">Custom brand logo active across website header & footer.</span>
-                ) : (
-                  <span className="text-slate-500">Using default OhmVeda brand vector logo.</span>
+
+              {/* Clear/Reset Image Button */}
+              {currentSavedLogo && (
+                <div className="pt-2 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={handleResetLogo}
+                    className="w-full py-2 bg-slate-100 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200 text-slate-700 rounded-xl text-xs font-semibold border border-slate-200 flex items-center justify-center gap-2 transition-colors cursor-pointer"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Remove Uploaded Image (Restore Default Vector Emblem)</span>
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Card 2: Brand Name & Default Emblem Customizer */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-5 shadow-xs">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <Type className="w-4 h-4 text-cyan-600" />
+                  <span>2. Brand Name & Default Emblem Customizer</span>
+                </h2>
+                <span className={`text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${
+                  brandTextForm.showBrandText
+                    ? 'bg-cyan-50 text-cyan-700 border-cyan-200'
+                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                }`}>
+                  Text {brandTextForm.showBrandText ? 'Enabled' : 'Disabled'}
+                </span>
+              </div>
+
+              {/* Subsection A: Replace Default Emblem Image or SVG in Database */}
+              <div className="space-y-3 bg-slate-50/70 p-4 rounded-xl border border-slate-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
+                      <Sliders className="w-3.5 h-3.5 text-cyan-600" />
+                      <span>Custom Default Emblem Logo Image (Database)</span>
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Upload an image/SVG or paste a link to replace the default emblem in the database when no header overlay logo is uploaded.
+                    </p>
+                  </div>
+                  {currentDefaultEmblem ? (
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-full font-bold shrink-0">
+                      Custom Emblem Active
+                    </span>
+                  ) : (
+                    <span className="text-[10px] bg-cyan-50 text-cyan-700 border border-cyan-200 px-2 py-0.5 rounded-full font-bold shrink-0">
+                      Vector SVG Active
+                    </span>
+                  )}
+                </div>
+
+                {/* Upload File or Input Link for Default Emblem */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Upload Default Emblem Image</label>
+                    <label className="flex items-center justify-center gap-2 px-3 py-2 bg-white border border-slate-200 hover:border-cyan-500 rounded-xl cursor-pointer transition-colors group text-xs text-slate-700 font-medium">
+                      <Upload className="w-3.5 h-3.5 text-slate-400 group-hover:text-cyan-600" />
+                      <span>{isUploadingDefaultEmblem ? 'Uploading...' : 'Choose File'}</span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleDefaultEmblemFileUpload}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-slate-700 mb-1">Or Paste Image Link (URL)</label>
+                    <div className="flex gap-1.5">
+                      <input
+                        type="text"
+                        placeholder="https://example.com/emblem.svg"
+                        value={defaultEmblemInputUrl}
+                        onChange={(e) => setDefaultEmblemInputUrl(e.target.value)}
+                        className="flex-1 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-cyan-500 font-mono"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleApplyDefaultEmblemUrl(defaultEmblemInputUrl)}
+                        className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold shrink-0 cursor-pointer transition-colors"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Reset Default Emblem Button */}
+                {currentDefaultEmblem && (
+                  <button
+                    type="button"
+                    onClick={handleResetDefaultEmblem}
+                    className="mt-2 w-full py-1.5 bg-white hover:bg-rose-50 text-slate-600 hover:text-rose-700 rounded-lg text-xs font-semibold border border-slate-200 flex items-center justify-center gap-1.5 transition-colors cursor-pointer"
+                  >
+                    <RefreshCw className="w-3 h-3" />
+                    <span>Remove Custom Default Emblem (Revert to Vector SVG)</span>
+                  </button>
                 )}
+              </div>
+
+              {/* Subsection B: Select Vector Emblem Style */}
+              {!currentDefaultEmblem && (
+                <div className="space-y-3 pt-1">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs font-bold text-slate-900">
+                      Select Built-in Vector Emblem Style
+                    </label>
+                    <span className="text-[10px] font-mono text-cyan-600 font-bold uppercase">
+                      Style: {activeEmblemStyle.replace('_', ' ')}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                    {[
+                      { id: 'quantum' as EmblemStyleOption, name: 'Quantum Omega' },
+                      { id: 'shield' as EmblemStyleOption, name: 'Hex Shield' },
+                      { id: 'semiconductor' as EmblemStyleOption, name: 'Silicon Chip' },
+                      { id: 'minimal_crest' as EmblemStyleOption, name: 'Speed Crest' },
+                    ].map((opt) => {
+                      const isSel = activeEmblemStyle === opt.id;
+                      return (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => handleSaveEmblemStyle(opt.id)}
+                          className={`p-2.5 rounded-xl border flex flex-col items-center gap-2 transition-all cursor-pointer ${
+                            isSel
+                              ? 'border-cyan-500 bg-cyan-50/50 ring-1 ring-cyan-500/20'
+                              : 'border-slate-200 bg-white hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="bg-slate-900 p-2 rounded-lg border border-slate-800 flex items-center justify-center w-full">
+                            <OhmVedaLogo
+                              variant="dark"
+                              layout="icon-only"
+                              size="sm"
+                              emblemStyle={opt.id}
+                              customLogoUrl={null}
+                              defaultEmblemUrl={null}
+                            />
+                          </div>
+                          <span className={`text-[10px] font-bold ${isSel ? 'text-cyan-700' : 'text-slate-600'}`}>
+                            {opt.name}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Subsection C: Enable / Disable Brand Name Text Switch */}
+              <div className="flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 rounded-xl">
+                <div className="space-y-0.5 pr-4">
+                  <label className="text-xs font-bold text-slate-900 cursor-pointer" htmlFor="toggleBrandText">
+                    Display Brand Name Text
+                  </label>
+                  <p className="text-[11px] text-slate-500">
+                    When turned ON, brand text (e.g. "OhmVeda") appears beside the emblem image. Turn OFF if your uploaded image already contains full branding text.
+                  </p>
+                </div>
+
+                <button
+                  id="toggleBrandText"
+                  type="button"
+                  onClick={() => {
+                    const updated = { ...brandTextForm, showBrandText: !brandTextForm.showBrandText };
+                    setBrandTextForm(updated);
+                    saveStoredBrandTextSettings(updated);
+                    showToast(`Brand name text ${updated.showBrandText ? 'Enabled' : 'Disabled'}.`, 'info');
+                  }}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    brandTextForm.showBrandText ? 'bg-cyan-600' : 'bg-slate-300'
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                      brandTextForm.showBrandText ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Subsection D: Editable Text Fields */}
+              {brandTextForm.showBrandText && (
+                <div className="space-y-4 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Primary Brand Text (e.g. "Ohm")
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={brandTextForm.brandTextOhm}
+                          onChange={(e) => setBrandTextForm({ ...brandTextForm, brandTextOhm: e.target.value })}
+                          placeholder="Ohm"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold text-[#03045E] focus:outline-none focus:border-cyan-500"
+                        />
+                        <span className="absolute right-3 top-2.5 text-[10px] text-slate-400 font-mono">Dark Navy</span>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Secondary Brand Text (e.g. "Veda")
+                      </label>
+                      <div className="relative">
+                        <input
+                          type="text"
+                          value={brandTextForm.brandTextVeda}
+                          onChange={(e) => setBrandTextForm({ ...brandTextForm, brandTextVeda: e.target.value })}
+                          placeholder="Veda"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2 text-xs font-bold text-[#0096C7] focus:outline-none focus:border-cyan-500"
+                        />
+                        <span className="absolute right-3 top-2.5 text-[10px] text-cyan-500 font-mono">Vivid Cyan</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => handleSaveBrandText()}
+                      className="flex-1 py-2 bg-cyan-600 hover:bg-cyan-500 text-white rounded-xl text-xs font-bold shadow-sm flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <Save className="w-3.5 h-3.5" />
+                      <span>Save Brand Text Settings</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleResetBrandText}
+                      className="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-semibold border border-slate-200 flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Reset</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+          </div>
+
+          {/* Right Column (5 cols): Live Preview Mockup Cards */}
+          <div className="lg:col-span-5 space-y-6">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4 shadow-xs sticky top-6">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <span>Live Header & Navbar Preview</span>
+                </h2>
+                <span className="text-[10px] text-slate-400 font-mono">Real-time</span>
+              </div>
+
+              <p className="text-xs text-slate-500">
+                This preview reflects how your logo image and brand text will look across the website navbar in both light and dark backgrounds.
+              </p>
+
+              {/* Light Mode Preview Card */}
+              <div className="space-y-1.5">
+                <div className="text-[10px] font-mono uppercase font-bold text-slate-500">Light Navbar View</div>
+                <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+                  <OhmVedaLogo
+                    variant="light"
+                    customLogoUrl={logoPreviewUrl}
+                    showBrandText={brandTextForm.showBrandText}
+                    brandTextOhm={brandTextForm.brandTextOhm}
+                    brandTextVeda={brandTextForm.brandTextVeda}
+                  />
+                  <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                    Header
+                  </span>
+                </div>
+              </div>
+
+              {/* Dark Mode Preview Card */}
+              <div className="space-y-1.5 pt-2">
+                <div className="text-[10px] font-mono uppercase font-bold text-slate-500">Dark Navbar View</div>
+                <div className="bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-sm flex items-center justify-between">
+                  <OhmVedaLogo
+                    variant="dark"
+                    customLogoUrl={logoPreviewUrl}
+                    showBrandText={brandTextForm.showBrandText}
+                    brandTextOhm={brandTextForm.brandTextOhm}
+                    brandTextVeda={brandTextForm.brandTextVeda}
+                  />
+                  <span className="text-[10px] font-bold text-cyan-400 bg-slate-800 px-2 py-0.5 rounded-full border border-slate-700">
+                    Footer / Portal
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-slate-500 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <strong>Active Configuration:</strong>
+                <ul className="mt-1 space-y-0.5 text-[10px] text-slate-600 list-disc list-inside">
+                  <li>Emblem Image: {currentSavedLogo ? 'Custom Uploaded Image' : 'Default OhmVeda Vector Emblem'}</li>
+                  <li>Brand Text: {brandTextForm.showBrandText ? `"${brandTextForm.brandTextOhm}${brandTextForm.brandTextVeda}"` : 'Disabled (Hidden)'}</li>
+                </ul>
               </div>
             </div>
           </div>

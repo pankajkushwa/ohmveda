@@ -19,6 +19,7 @@ import { OrdersAndAddressesModal } from './components/OrdersAndAddressesModal';
 import { Footer } from './components/Footer';
 import { CareersSection } from './components/CareersSection';
 import { AccountPage } from './components/AccountPage';
+import { SeoHead } from './components/SeoHead';
 import { CartItem, JobRole, ProductCategory, StoreCategory, StoreItem, TurnkeyProduct, UserProfile } from './types';
 import { ShoppingBag, ArrowRight, Zap, Wifi, ShieldCheck } from 'lucide-react';
 import { 
@@ -38,29 +39,47 @@ import {
 } from './services/dataStorage';
 
 export default function App() {
-  // Standalone route detection: Admin portal opens independently via /#admin, /admin, or ?admin=true
-  const [currentPage, setCurrentPage] = useState<'home' | 'products' | 'store' | 'careers' | 'account' | 'admin'>(() => {
+  const getPageFromLocation = () => {
+    if (typeof window === 'undefined') return 'home' as const;
+
     if (
-      typeof window !== 'undefined' &&
-      (window.location.hash === '#admin' ||
-       window.location.pathname.endsWith('/admin') ||
-       new URLSearchParams(window.location.search).get('admin') === 'true')
+      window.location.hash === '#admin' ||
+      window.location.pathname.endsWith('/admin') ||
+      new URLSearchParams(window.location.search).get('admin') === 'true'
     ) {
-      return 'admin';
+      return 'admin' as const;
     }
-    return 'home';
-  });
+
+    if (window.location.pathname.startsWith('/products')) return 'products' as const;
+    if (window.location.pathname.startsWith('/store')) return 'store' as const;
+    if (window.location.pathname.startsWith('/careers')) return 'careers' as const;
+    if (window.location.pathname.startsWith('/account')) return 'account' as const;
+    if (window.location.pathname.startsWith('/services')) return 'home' as const;
+    if (window.location.pathname.startsWith('/about')) return 'home' as const;
+    if (window.location.pathname.startsWith('/contact')) return 'home' as const;
+
+    return 'home' as const;
+  };
+
+  const getSectionFromPath = () => {
+    if (typeof window === 'undefined') return 'hero';
+    if (window.location.pathname.startsWith('/services')) return 'services';
+    if (window.location.pathname.startsWith('/about')) return 'about';
+    if (window.location.pathname.startsWith('/contact')) return 'contact';
+    return 'hero';
+  };
+
+  // Standalone route detection: Admin portal opens independently via /#admin, /admin, or ?admin=true
+  const [currentPage, setCurrentPage] = useState<'home' | 'products' | 'store' | 'careers' | 'account' | 'admin'>(getPageFromLocation);
+  const [activeSection, setActiveSection] = useState(() => getSectionFromPath());
 
   // Listen to hash and location changes for direct standalone URL navigation
   useEffect(() => {
     const handleLocationCheck = () => {
-      if (
-        window.location.hash === '#admin' ||
-        window.location.pathname.endsWith('/admin') ||
-        new URLSearchParams(window.location.search).get('admin') === 'true'
-      ) {
-        setCurrentPage('admin');
-      }
+      const nextPage = getPageFromLocation();
+      const nextSection = getSectionFromPath();
+      setCurrentPage(nextPage);
+      setActiveSection(nextSection);
     };
     window.addEventListener('hashchange', handleLocationCheck);
     window.addEventListener('popstate', handleLocationCheck);
@@ -69,7 +88,6 @@ export default function App() {
       window.removeEventListener('popstate', handleLocationCheck);
     };
   }, []);
-  const [activeSection, setActiveSection] = useState('hero');
   const [storeCategory, setStoreCategory] = useState<string>('all');
   const [storeComponentId, setStoreComponentId] = useState<string | null>(null);
   const [selectedProductId, setSelectedProductId] = useState<string | null>(null);
@@ -98,10 +116,18 @@ export default function App() {
     const syncFaviconAndMeta = () => {
       const customLogo = getStoredCustomLogo();
       const faviconEl = document.getElementById('app-favicon') as HTMLLinkElement | null;
+      const shortcutIconEl = document.querySelector('link[rel="shortcut icon"]') as HTMLLinkElement | null;
+      const appleIconEl = document.querySelector('link[rel="apple-touch-icon"]') as HTMLLinkElement | null;
       const ogMetaEl = document.getElementById('og-image-meta') as HTMLMetaElement | null;
-      const logoUrl = customLogo || '/favicon.svg';
+      const logoUrl = customLogo || '/logo1.png';
       if (faviconEl) {
         faviconEl.href = logoUrl;
+      }
+      if (shortcutIconEl) {
+        shortcutIconEl.href = logoUrl;
+      }
+      if (appleIconEl) {
+        appleIconEl.href = logoUrl;
       }
       if (ogMetaEl) {
         ogMetaEl.content = logoUrl;
@@ -215,12 +241,29 @@ export default function App() {
     };
   }, [currentPage]);
 
+  const getRoutePath = (page: 'home' | 'products' | 'store' | 'careers' | 'account' | 'admin', sectionId: string = 'hero') => {
+    if (page === 'products') return '/products';
+    if (page === 'store') return '/store';
+    if (page === 'careers') return '/careers';
+    if (page === 'account') return '/account';
+    if (page === 'admin') return '/admin';
+    if (sectionId === 'services') return '/services';
+    if (sectionId === 'about') return '/about';
+    if (sectionId === 'contact') return '/contact';
+    return '/';
+  };
+
   const handleNavigate = (
     page: 'home' | 'products' | 'store' | 'careers' | 'account' | 'admin',
     sectionId: string = 'hero',
     extra?: { category?: string; productId?: string; componentId?: string; jobId?: string }
   ) => {
     setCurrentPage(page);
+
+    const routePath = getRoutePath(page, sectionId);
+    if (typeof window !== 'undefined' && window.location.pathname !== routePath) {
+      window.history.pushState({}, '', routePath);
+    }
 
     if (page === 'admin' || page === 'careers' || page === 'account') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -353,8 +396,11 @@ export default function App() {
     }
   };
 
+  const seoPage = currentPage === 'products' ? 'products' : currentPage === 'store' ? 'store' : currentPage === 'careers' ? 'careers' : currentPage === 'account' ? 'account' : currentPage === 'admin' ? 'admin' : 'home';
+
   return (
     <div className="min-h-screen bg-slate-900 font-sans text-slate-100 antialiased selection:bg-blue-600 selection:text-white flex flex-col justify-between">
+      <SeoHead page={seoPage} sectionId={activeSection} canonicalPath={seoPage === 'home' ? '/' : `/${seoPage}`} />
       
       {/* Sticky Top Navigation Bar with Page & Submenu Routing (Hidden in Admin Panel) */}
       {currentPage !== 'admin' && (

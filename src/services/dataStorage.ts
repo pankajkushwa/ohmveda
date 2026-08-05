@@ -21,6 +21,9 @@ const STORAGE_KEYS = {
   JOB_ROLES: 'ohmveda_job_roles_v1',
   JOB_APPLICATIONS: 'ohmveda_job_applications_v1',
   CUSTOM_LOGO: 'ohmveda_custom_logo_v1',
+  DEFAULT_EMBLEM_URL: 'ohmveda_default_emblem_url_v1',
+  EMBLEM_STYLE: 'ohmveda_emblem_style_v1',
+  BRAND_TEXT_SETTINGS: 'ohmveda_brand_text_settings_v1',
   COMPANY_CONTACT: 'ohmveda_company_contact_v1',
   STORE_QAS: 'ohmveda_store_qas_v1',
   STORE_REVIEWS: 'ohmveda_store_reviews_v1',
@@ -234,6 +237,98 @@ export function saveStoredCustomLogo(logoUrl: string | null): void {
     window.dispatchEvent(new Event('ohmveda_logo_updated'));
   } catch (err) {
     console.error('Error saving custom logo:', err);
+  }
+}
+
+export function getStoredDefaultEmblemUrl(): string | null {
+  try {
+    return localStorage.getItem(STORAGE_KEYS.DEFAULT_EMBLEM_URL);
+  } catch (err) {
+    console.error('Error reading default emblem URL:', err);
+  }
+  return null;
+}
+
+export function saveStoredDefaultEmblemUrl(url: string | null): void {
+  try {
+    if (url) {
+      localStorage.setItem(STORAGE_KEYS.DEFAULT_EMBLEM_URL, url);
+    } else {
+      localStorage.removeItem(STORAGE_KEYS.DEFAULT_EMBLEM_URL);
+    }
+    setDoc(doc(db, 'app_settings', 'branding'), { defaultEmblemUrl: url || null }, { merge: true }).catch((err) =>
+      console.error('Firestore save default emblem URL error:', err)
+    );
+    window.dispatchEvent(new Event('ohmveda_logo_updated'));
+  } catch (err) {
+    console.error('Error saving default emblem URL:', err);
+  }
+}
+
+export type EmblemStyleOption = 'quantum' | 'shield' | 'semiconductor' | 'minimal_crest';
+
+export function getStoredEmblemStyle(): EmblemStyleOption {
+  try {
+    const val = localStorage.getItem(STORAGE_KEYS.EMBLEM_STYLE);
+    if (val === 'quantum' || val === 'shield' || val === 'semiconductor' || val === 'minimal_crest') {
+      return val;
+    }
+  } catch (err) {
+    console.error('Error reading stored emblem style:', err);
+  }
+  return 'quantum';
+}
+
+export function saveStoredEmblemStyle(style: EmblemStyleOption): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.EMBLEM_STYLE, style);
+    setDoc(doc(db, 'app_settings', 'branding'), { emblemStyle: style }, { merge: true }).catch((err) =>
+      console.error('Firestore save emblem style error:', err)
+    );
+    window.dispatchEvent(new Event('ohmveda_logo_updated'));
+  } catch (err) {
+    console.error('Error saving emblem style:', err);
+  }
+}
+
+export interface BrandTextSettings {
+  showBrandText: boolean;
+  brandTextOhm: string;
+  brandTextVeda: string;
+}
+
+export const DEFAULT_BRAND_TEXT_SETTINGS: BrandTextSettings = {
+  showBrandText: true,
+  brandTextOhm: 'Ohm',
+  brandTextVeda: 'Veda',
+};
+
+export function getStoredBrandTextSettings(): BrandTextSettings {
+  try {
+    const val = localStorage.getItem(STORAGE_KEYS.BRAND_TEXT_SETTINGS);
+    if (val) {
+      const parsed = JSON.parse(val);
+      return {
+        showBrandText: parsed.showBrandText ?? true,
+        brandTextOhm: parsed.brandTextOhm ?? 'Ohm',
+        brandTextVeda: parsed.brandTextVeda ?? 'Veda',
+      };
+    }
+  } catch (err) {
+    console.error('Error reading brand text settings:', err);
+  }
+  return DEFAULT_BRAND_TEXT_SETTINGS;
+}
+
+export function saveStoredBrandTextSettings(settings: BrandTextSettings): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.BRAND_TEXT_SETTINGS, JSON.stringify(settings));
+    setDoc(doc(db, 'app_settings', 'branding'), { brandTextSettings: settings }, { merge: true }).catch((err) =>
+      console.error('Firestore save brand text settings error:', err)
+    );
+    window.dispatchEvent(new Event('ohmveda_logo_updated'));
+  } catch (err) {
+    console.error('Error saving brand text settings:', err);
   }
 }
 
@@ -1390,16 +1485,30 @@ export function subscribeToFirestoreData(onUpdate: (data: {
     console.error('Admin emails subscription error:', e);
   }
 
-  // 9. Custom Branding Logo Listener
+  // 9. Custom Branding Logo & Emblem Style Listener
   try {
     const unsub = onSnapshot(doc(db, 'app_settings', 'branding'), (docSnap) => {
       if (docSnap.exists()) {
-        const logoUrl = docSnap.data().customLogo || null;
+        const data = docSnap.data();
+        const logoUrl = data.customLogo || null;
+        const defaultEmblemUrl = data.defaultEmblemUrl || null;
+        const emblemStyle = data.emblemStyle || 'quantum';
+        const brandTextSettings = data.brandTextSettings || DEFAULT_BRAND_TEXT_SETTINGS;
+
         if (logoUrl) {
           localStorage.setItem(STORAGE_KEYS.CUSTOM_LOGO, logoUrl);
         } else {
           localStorage.removeItem(STORAGE_KEYS.CUSTOM_LOGO);
         }
+
+        if (defaultEmblemUrl) {
+          localStorage.setItem(STORAGE_KEYS.DEFAULT_EMBLEM_URL, defaultEmblemUrl);
+        } else {
+          localStorage.removeItem(STORAGE_KEYS.DEFAULT_EMBLEM_URL);
+        }
+
+        localStorage.setItem(STORAGE_KEYS.EMBLEM_STYLE, emblemStyle);
+        localStorage.setItem(STORAGE_KEYS.BRAND_TEXT_SETTINGS, JSON.stringify(brandTextSettings));
         onUpdate({ customLogo: logoUrl });
         window.dispatchEvent(new Event('ohmveda_logo_updated'));
       }

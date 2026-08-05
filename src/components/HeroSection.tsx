@@ -10,7 +10,7 @@ interface HeroSectionProps {
 
 export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenInquiry, onExploreCapabilities }) => {
   return (
-    <section id="hero" className="relative bg-slate-900 text-slate-100 overflow-hidden pt-16 pb-20 border-b border-slate-800">
+    <section id="hero" aria-labelledby="hero-title" className="relative bg-slate-900 text-slate-100 overflow-hidden pt-16 pb-20 border-b border-slate-800">
       {/* Background Tech Grids & Subtle Glow */}
       <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-slate-950 pointer-events-none" />
       <motion.div 
@@ -24,6 +24,7 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ onOpenInquiry, onExplo
         {/* Main Hero Headline */}
         <div className="text-center max-w-4xl mx-auto space-y-6">
           <motion.h1 
+            id="hero-title"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}

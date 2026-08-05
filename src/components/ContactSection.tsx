@@ -64,7 +64,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenInquiry })
   };
 
   return (
-    <section id="contact" className="py-20 bg-slate-900 text-slate-100 border-b border-slate-800 relative">
+    <section id="contact" aria-labelledby="contact-title" className="py-20 bg-slate-900 text-slate-100 border-b border-slate-800 relative">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Header */}
@@ -75,7 +75,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ onOpenInquiry })
           transition={{ duration: 0.5 }}
           className="text-center max-w-3xl mx-auto space-y-3"
         >
-          <h2 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+          <h2 id="contact-title" className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
             Get in Touch With Our Engineers
           </h2>
           <p className="text-slate-300 text-base leading-relaxed">
