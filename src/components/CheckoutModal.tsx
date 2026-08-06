@@ -9,8 +9,12 @@ import {
   getStoredUserAddresses, 
   saveStoredUserAddress, 
   deleteStoredUserAddress, 
-  saveStoredUserOrder 
+  saveStoredUserOrder,
+  getUserRewardPoints,
+  saveUserRewardPoints,
+  addRewardPointTransaction
 } from '../services/dataStorage';
+import { getRewardPointsForProduct } from '../utils/priceUtils';
 
 interface CheckoutModalProps {
   isOpen: boolean;
@@ -78,6 +82,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const [cardHolder, setCardHolder] = useState(userProfile.name || '');
   const [selectedBank, setSelectedBank] = useState('HDFC Bank');
   const [gstNumber, setGstNumber] = useState('');
+
+  // Reward Points State
+  const [userPoints, setUserPoints] = useState<number>(0);
+  const [usePointsDiscount, setUsePointsDiscount] = useState<boolean>(false);
 
   // Processing & Placed Order
   const [isProcessing, setIsProcessing] = useState(false);
@@ -175,6 +183,10 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
       setStep(1);
       setValidationError('');
       setPlacedOrder(null);
+
+      // Load user reward points balance
+      const currentPts = getUserRewardPoints(userProfile.email);
+      setUserPoints(currentPts);
     }
   }, [isOpen, userProfile]);
 
@@ -184,7 +196,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
   const subtotal = cart.reduce((acc, item) => acc + item.product.price * item.quantity, 0);
   const shippingFee = subtotal >= 1500 || subtotal === 0 ? 0 : 99;
   const gstAmount = Math.round(subtotal * 0.18); // 18% GST (inclusive representation)
-  const grandTotal = subtotal + shippingFee;
+  const initialGrandTotal = subtotal + shippingFee;
+
+  // Points conversion: 1000 points = ₹100 discount (1 point = ₹0.10)
+  const maxDiscountFromPoints = Math.floor(userPoints / 1000) * 100;
+  const pointsDiscountRs = usePointsDiscount ? Math.min(initialGrandTotal, maxDiscountFromPoints) : 0;
+  const pointsRedeemedCount = usePointsDiscount ? (pointsDiscountRs / 100) * 1000 : 0;
+
+  const grandTotal = Math.max(0, initialGrandTotal - pointsDiscountRs);
+
+  // Calculate total points earned from this purchase
+  const pointsEarnedOnOrder = cart.reduce((sum, item) => {
+    return sum + (getRewardPointsForProduct(item.product) * item.quantity);
+  }, 0);
 
   // Save new or edited address
   const handleSaveAddress = (e: React.FormEvent) => {
@@ -352,6 +376,9 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
         shippingFee,
         gstAmount,
         totalAmount: grandTotal,
+        pointsEarned: pointsEarnedOnOrder,
+        pointsRedeemed: pointsRedeemedCount,
+        pointsDiscountRs: pointsDiscountRs,
         shippingAddress: selectedAddr,
         paymentMethod,
         paymentStatus: paymentMethod === 'COD' ? 'COD_CONFIRMED' : 'PAID',
@@ -365,6 +392,32 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
           year: 'numeric',
         }),
       };
+
+      // Process OhmVeda Reward Points Ledger Updates
+      let updatedUserPoints = userPoints;
+      if (pointsRedeemedCount > 0) {
+        updatedUserPoints -= pointsRedeemedCount;
+        addRewardPointTransaction(userProfile.email, {
+          type: 'REDEEMED',
+          points: pointsRedeemedCount,
+          amountInRs: pointsDiscountRs,
+          description: `Redeemed ${pointsRedeemedCount} points (₹${pointsDiscountRs} discount) on Order #${orderId}`,
+          orderId,
+        });
+      }
+
+      if (pointsEarnedOnOrder > 0) {
+        updatedUserPoints += pointsEarnedOnOrder;
+        addRewardPointTransaction(userProfile.email, {
+          type: 'EARNED',
+          points: pointsEarnedOnOrder,
+          description: `Earned ${pointsEarnedOnOrder} OhmVeda Points on Order #${orderId}`,
+          orderId,
+        });
+      }
+
+      saveUserRewardPoints(userProfile.email, updatedUserPoints);
+      setUserPoints(updatedUserPoints);
 
       // Save order to store and trigger callbacks
       saveStoredUserOrder(newOrder);
@@ -523,6 +576,46 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                 </div>
               )}
 
+              {/* OhmVeda Points Redemption Banner */}
+              <div className="bg-purple-50 rounded-2xl p-4 border border-purple-200 space-y-2 text-xs">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-lg bg-purple-600 text-white flex items-center justify-center font-black text-xs shadow-2xs">
+                      ⚡
+                    </div>
+                    <div>
+                      <h5 className="font-extrabold text-purple-950">OhmVeda Reward Points</h5>
+                      <p className="text-[11px] text-purple-700">
+                        Available Balance: <strong className="font-extrabold text-purple-900">{userPoints.toLocaleString()} Points</strong> (₹{(userPoints / 10).toFixed(0)} Value)
+                      </p>
+                    </div>
+                  </div>
+                  {userPoints >= 1000 ? (
+                    <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-purple-300 shadow-2xs hover:bg-purple-100/50">
+                      <input
+                        type="checkbox"
+                        checked={usePointsDiscount}
+                        onChange={(e) => setUsePointsDiscount(e.target.checked)}
+                        className="accent-purple-700 w-4 h-4 cursor-pointer"
+                      />
+                      <span className="font-bold text-purple-900 text-xs">Use Points</span>
+                    </label>
+                  ) : (
+                    <span className="text-[10px] text-purple-600 font-medium italic">Min 1,000 points required to redeem</span>
+                  )}
+                </div>
+                {usePointsDiscount && pointsDiscountRs > 0 && (
+                  <div className="pt-2 border-t border-purple-200/80 flex items-center justify-between text-emerald-800 font-bold">
+                    <span>Redeeming {pointsRedeemedCount.toLocaleString()} Points (1,000 pts = ₹100)</span>
+                    <span className="font-mono text-emerald-700 font-extrabold">- ₹{pointsDiscountRs.toLocaleString()}</span>
+                  </div>
+                )}
+                <div className="text-[10px] text-purple-600 pt-0.5 flex items-center justify-between">
+                  <span>Points earned on this purchase:</span>
+                  <strong className="text-purple-900 font-mono font-extrabold">+{pointsEarnedOnOrder.toLocaleString()} Points</strong>
+                </div>
+              </div>
+
               {/* Price Breakdown Card */}
               <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2 text-xs">
                 <div className="flex justify-between text-slate-600 font-medium">
@@ -542,6 +635,12 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                     {shippingFee === 0 ? 'FREE' : `₹${shippingFee}`}
                   </span>
                 </div>
+                {usePointsDiscount && pointsDiscountRs > 0 && (
+                  <div className="flex justify-between text-emerald-700 font-bold">
+                    <span>OhmVeda Points Discount</span>
+                    <span className="font-mono font-bold text-emerald-700">- ₹{pointsDiscountRs.toLocaleString()}</span>
+                  </div>
+                )}
                 {shippingFee > 0 && (
                   <p className="text-[10px] text-slate-500 font-normal">
                     Add ₹{(1500 - subtotal).toLocaleString()} more for FREE Express Shipping!
@@ -1283,9 +1382,19 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
                         {shippingFee === 0 ? 'FREE' : `₹${shippingFee}`}
                       </span>
                     </div>
+                    {usePointsDiscount && pointsDiscountRs > 0 && (
+                      <div className="flex justify-between text-emerald-400 font-bold">
+                        <span>OhmVeda Points Discount</span>
+                        <span className="font-mono">- ₹{pointsDiscountRs.toLocaleString()}</span>
+                      </div>
+                    )}
                     <div className="pt-2 border-t border-slate-800 flex justify-between text-base font-extrabold text-white">
                       <span>Grand Total</span>
                       <span className="text-blue-400 font-mono">₹{grandTotal.toLocaleString()}</span>
+                    </div>
+                    <div className="text-[11px] text-amber-300/90 pt-1 flex items-center justify-between border-t border-slate-800">
+                      <span>Points to Earn:</span>
+                      <span className="font-mono font-bold text-amber-300">+{pointsEarnedOnOrder.toLocaleString()} Points</span>
                     </div>
                   </div>
 

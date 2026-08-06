@@ -14,6 +14,7 @@ import { Toast, ToastMessage } from './components/Toast';
 import { ProductsManager } from './pages/ProductsManager';
 import { StoreManager } from './pages/StoreManager';
 import { CategoriesManager } from './pages/CategoriesManager';
+import { SpecificationManager } from './pages/SpecificationManager';
 import { DeliveriesManager } from './pages/DeliveriesManager';
 import { CareersAndApplicantsManager } from './pages/CareersAndApplicantsManager';
 import { BrandingManager } from './pages/BrandingManager';
@@ -185,6 +186,14 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
               productCategories={productCategories}
               storeCategories={storeCategories}
               onUpdateProductCategories={onUpdateProductCategories}
+              showToast={showToast}
+              openDeleteConfirm={openDeleteConfirm}
+            />
+          )}
+
+          {activeTab === 'specifications' && (
+            <SpecificationManager
+              storeCategories={storeCategories}
               showToast={showToast}
               openDeleteConfirm={openDeleteConfirm}
             />

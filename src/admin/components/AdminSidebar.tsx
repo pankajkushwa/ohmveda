@@ -1,6 +1,6 @@
 import React from 'react';
 import { 
-  Box, Cpu, Layers, Briefcase, Image, UserCheck, Activity, X, Truck, LayoutDashboard, Mail
+  Box, Cpu, Layers, Briefcase, Image, UserCheck, Activity, X, Truck, LayoutDashboard, Mail, Sliders
 } from 'lucide-react';
 
 export type AdminTab = 
@@ -9,6 +9,7 @@ export type AdminTab =
   | 'products' 
   | 'store' 
   | 'categories' 
+  | 'specifications'
   | 'deliveries'
   | 'careers' 
   | 'branding' 
@@ -44,6 +45,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     { id: 'products', label: 'Products', icon: Box, badge: productsCount },
     { id: 'store', label: 'Store Inventory', icon: Cpu, badge: storeCount },
     { id: 'categories', label: 'Categories Manager', icon: Layers },
+    { id: 'specifications', label: 'Specification Manager', icon: Sliders },
     { id: 'deliveries', label: 'Deliveries & Orders', icon: Truck, badge: ordersCount },
     { id: 'careers', label: 'Careers & Applicants', icon: Briefcase, badge: jobAppsCount },
     { id: 'branding', label: 'Brand & Contact Info', icon: Image },

@@ -5,14 +5,16 @@ import {
   Copy, ArrowLeft, Building2, Phone, Sparkles, LogOut, ExternalLink, RefreshCw, Layers,
   Truck, Clock, CreditCard, Mail, Box, Ban, XCircle
 } from 'lucide-react';
-import { UserAddress, UserOrder, UserProfile, SeparateBillingAddress, StoreItem } from '../types';
+import { UserAddress, UserOrder, UserProfile, SeparateBillingAddress, StoreItem, RewardPointTransaction } from '../types';
 import { 
   getStoredUserAddresses, 
   getStoredUserOrders, 
   updateStoredUserOrder,
   saveStoredUserAddress, 
   deleteStoredUserAddress,
-  saveRegisteredUserProfile
+  saveRegisteredUserProfile,
+  getUserRewardPoints,
+  getRewardPointHistory
 } from '../services/dataStorage';
 
 interface AccountPageProps {
@@ -35,7 +37,11 @@ export const AccountPage: React.FC<AccountPageProps> = ({
   onNavigateToStore,
 }) => {
   // Sidebar Navigation Selection Menu State
-  const [activeTab, setActiveTab] = useState<'orders' | 'addresses' | 'gstin' | 'profile'>('orders');
+  const [activeTab, setActiveTab] = useState<'orders' | 'points' | 'addresses' | 'gstin' | 'profile'>('orders');
+
+  // OhmVeda Reward Points State
+  const [userPoints, setUserPoints] = useState<number>(0);
+  const [pointHistory, setPointHistory] = useState<RewardPointTransaction[]>([]);
 
   // Orders State & Detailed View State
   const [orders, setOrders] = useState<UserOrder[]>([]);
@@ -126,6 +132,14 @@ export const AccountPage: React.FC<AccountPageProps> = ({
 
       const userAddresses = getStoredUserAddresses(userProfile.id);
       setAddresses(userAddresses);
+
+      if (userProfile.email) {
+        const pts = getUserRewardPoints(userProfile.email);
+        const history = getRewardPointHistory(userProfile.email);
+        setUserPoints(pts);
+        setPointHistory(history);
+      }
+
       setFormError('');
       setProfileSuccessMsg('');
 
@@ -139,7 +153,7 @@ export const AccountPage: React.FC<AccountPageProps> = ({
       setCompanyName(userProfile.company || '');
       setGstin(userProfile.gstin || '');
     }
-  }, [userProfile]);
+  }, [userProfile, activeTab]);
 
   if (!userProfile) {
     return (
@@ -456,6 +470,32 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   activeTab === 'orders' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-700 border border-slate-200'
                 }`}>
                   {orders.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setActiveTab('points')}
+                className={`w-full p-3.5 rounded-xl text-xs font-bold text-left transition-all flex items-center justify-between cursor-pointer ${
+                  activeTab === 'points'
+                    ? 'bg-purple-700 text-white shadow-md'
+                    : 'bg-purple-50/60 hover:bg-purple-100 text-purple-900 border border-purple-200'
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${activeTab === 'points' ? 'bg-white/20' : 'bg-purple-100 text-purple-700'}`}>
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <span className="block font-black text-sm">OhmVeda Points</span>
+                    <span className={`text-[10px] block ${activeTab === 'points' ? 'text-purple-100' : 'text-purple-700'}`}>
+                      Rewards & purchase discounts
+                    </span>
+                  </div>
+                </div>
+                <span className={`text-xs font-bold font-mono px-2.5 py-1 rounded-full ${
+                  activeTab === 'points' ? 'bg-white/20 text-white' : 'bg-purple-200 text-purple-950 border border-purple-300'
+                }`}>
+                  {userPoints.toLocaleString()} Pts
                 </span>
               </button>
 
@@ -1097,6 +1137,113 @@ export const AccountPage: React.FC<AccountPageProps> = ({
                   )}
                 </div>
               )
+            )}
+
+            {/* VIEW 1.5: OHMVEDA REWARD POINTS & TRANSACTIONS */}
+            {activeTab === 'points' && (
+              <div className="space-y-6">
+                <div className="pb-4 border-b border-slate-200">
+                  <h2 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-purple-600" />
+                    <span>OhmVeda Reward Points</span>
+                  </h2>
+                  <p className="text-xs text-slate-500">
+                    Earn points on every component purchase and redeem them as cash discounts on checkout!
+                  </p>
+                </div>
+
+                {/* Balance Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-950 text-white space-y-2 shadow-md">
+                    <div className="flex items-center justify-between text-xs text-purple-200 font-mono font-bold">
+                      <span>POINTS BALANCE</span>
+                      <Sparkles className="w-4 h-4 text-amber-300" />
+                    </div>
+                    <div className="text-3xl font-black font-mono text-amber-300">
+                      {userPoints.toLocaleString()} <span className="text-sm font-bold text-purple-200">Pts</span>
+                    </div>
+                    <p className="text-[11px] text-purple-200">
+                      1,000 Points = ₹100 Discount
+                    </p>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-950 space-y-2">
+                    <div className="flex items-center justify-between text-xs text-emerald-700 font-mono font-bold">
+                      <span>CASH DISCOUNT VALUE</span>
+                      <Receipt className="w-4 h-4 text-emerald-600" />
+                    </div>
+                    <div className="text-3xl font-black font-mono text-emerald-700">
+                      ₹{(userPoints / 10).toFixed(0)} <span className="text-sm font-bold text-emerald-600">INR</span>
+                    </div>
+                    <p className="text-[11px] text-emerald-800">
+                      Applicable at checkout on any hardware order
+                    </p>
+                  </div>
+
+                  <div className="p-5 rounded-2xl bg-blue-50 border border-blue-200 text-blue-950 space-y-2">
+                    <div className="flex items-center justify-between text-xs text-blue-700 font-mono font-bold">
+                      <span>REDEEM RULE</span>
+                      <ShieldCheck className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div className="text-sm font-bold text-slate-800 leading-snug">
+                      Toggle "Use Points" during checkout payment step
+                    </div>
+                    <p className="text-[11px] text-blue-700">
+                      Instant discount calculated automatically
+                    </p>
+                  </div>
+                </div>
+
+                {/* Point History Table / Ledger */}
+                <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
+                  <h3 className="text-xs font-black text-slate-900 uppercase tracking-wider font-mono flex items-center justify-between">
+                    <span>Points Transaction History ({pointHistory.length})</span>
+                    <span className="text-[11px] font-bold text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200">
+                      Live Ledger
+                    </span>
+                  </h3>
+
+                  {pointHistory.length === 0 ? (
+                    <div className="text-center py-8 text-slate-500 text-xs">
+                      No points transactions recorded yet. Earn points on your first hardware purchase!
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      {pointHistory.map((tx) => (
+                        <div key={tx.id} className="py-3 flex items-center justify-between gap-3 text-xs">
+                          <div className="space-y-0.5 min-w-0">
+                            <p className="font-bold text-slate-900 truncate">{tx.description}</p>
+                            <p className="text-[10px] text-slate-500 font-mono">
+                              {new Date(tx.createdAt || tx.date || Date.now()).toLocaleDateString('en-IN', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                              })}
+                              {tx.orderId && ` • Order #${tx.orderId}`}
+                            </p>
+                          </div>
+
+                          <div className={`text-right font-mono font-extrabold shrink-0 text-sm ${
+                            tx.type === 'EARNED' || tx.type === 'BONUS' || tx.type === 'WELCOME_BONUS' || tx.type === 'REFUND'
+                              ? 'text-emerald-600'
+                              : 'text-rose-600'
+                          }`}>
+                            {tx.type === 'EARNED' || tx.type === 'BONUS' || tx.type === 'WELCOME_BONUS' || tx.type === 'REFUND' ? '+' : '-'}
+                            {tx.points.toLocaleString()} Pts
+                            {tx.amountInRs && (
+                              <span className="block text-[10px] font-normal text-slate-500">
+                                (₹{tx.amountInRs} Discount)
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
             )}
 
             {/* VIEW 2: SAVED ADDRESSES */}

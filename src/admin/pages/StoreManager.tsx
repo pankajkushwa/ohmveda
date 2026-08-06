@@ -3,7 +3,7 @@ import {
   Plus, Edit3, Trash2, Search, Cpu, X, Save, DollarSign, CheckCircle2, AlertTriangle, 
   ExternalLink, FileText, Upload, HelpCircle, Star, Send, MessageSquare, Download, Link
 } from 'lucide-react';
-import { StoreCategory, StoreItem, TechnicalDocument, StoreQaItem, StoreReviewItem } from '../../types';
+import { StoreCategory, StoreItem, TechnicalDocument, StoreQaItem, StoreReviewItem, Specification, SpecGroup, SpecTemplate, StoreItemSpecValue } from '../../types';
 import { ImageUploaderManager } from '../../components/ImageUploaderManager';
 import { 
   addAdminLog, 
@@ -14,7 +14,11 @@ import {
   getStoredStoreReviews, 
   deleteStoreReview,
   deleteDocumentBlob,
+  getStoredSpecGroups,
+  getStoredSpecifications,
+  getStoredSpecTemplates,
 } from '../../services/dataStorage';
+import { buildCategoryTree, itemMatchesCategoryFilter } from '../../utils/categoryUtils';
 
 interface StoreManagerProps {
   storeItems: StoreItem[];
@@ -76,7 +80,7 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
       s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.sku?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       s.shortDesc?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCat = selectedCategory === 'all' || s.category === selectedCategory;
+    const matchesCat = itemMatchesCategoryFilter(s, selectedCategory, storeCategories);
     return matchesSearch && matchesCat;
   });
 
@@ -415,13 +419,27 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
               <select
                 value={selectedCategory}
                 onChange={(e) => setSelectedCategory(e.target.value)}
-                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-emerald-500 shadow-xs"
+                className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2.5 text-xs text-slate-800 focus:outline-none focus:border-emerald-500 shadow-xs font-medium"
               >
                 <option value="all">All Component Categories</option>
-                {storeCategories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {cleanCategoryLabel(c.label, c.id)}
-                  </option>
+                {buildCategoryTree(storeCategories).map((mainCat) => (
+                  <React.Fragment key={mainCat.id}>
+                    <option value={mainCat.id} className="font-bold">
+                      📁 {mainCat.label}
+                    </option>
+                    {mainCat.subcategories.map((subCat) => (
+                      <React.Fragment key={subCat.id}>
+                        <option value={subCat.id}>
+                          &nbsp;&nbsp;📂 {subCat.label}
+                        </option>
+                        {subCat.subcategories.map((subSub) => (
+                          <option key={subSub.id} value={subSub.id}>
+                            &nbsp;&nbsp;&nbsp;&nbsp;📄 {subSub.label}
+                          </option>
+                        ))}
+                      </React.Fragment>
+                    ))}
+                  </React.Fragment>
                 ))}
               </select>
             </div>
@@ -784,25 +802,80 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-slate-700 mb-1">Category *</label>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Assigned Category (3-Tier Taxonomy) *</label>
                     {storeCategories.length > 0 ? (
                       <select
-                        value={editingStoreItem.category}
-                        onChange={(e) => setEditingStoreItem({ ...editingStoreItem, category: e.target.value })}
+                        value={
+                          editingStoreItem.subSubCategory ||
+                          editingStoreItem.subCategory ||
+                          editingStoreItem.category
+                        }
+                        onChange={(e) => {
+                          const selectedId = e.target.value;
+                          const catObj = storeCategories.find((c) => c.id === selectedId);
+                          if (!catObj) {
+                            setEditingStoreItem({
+                              ...editingStoreItem,
+                              category: selectedId,
+                              subCategory: undefined,
+                              subSubCategory: undefined,
+                            });
+                            return;
+                          }
+                          if (catObj.level === 2) {
+                            const parentSub = storeCategories.find((c) => c.id === catObj.parentId);
+                            const parentMain = parentSub ? storeCategories.find((c) => c.id === parentSub.parentId) : null;
+                            setEditingStoreItem({
+                              ...editingStoreItem,
+                              category: parentMain ? parentMain.id : parentSub ? parentSub.id : catObj.id,
+                              subCategory: parentSub ? parentSub.id : undefined,
+                              subSubCategory: catObj.id,
+                            });
+                          } else if (catObj.level === 1) {
+                            const parentMain = storeCategories.find((c) => c.id === catObj.parentId);
+                            setEditingStoreItem({
+                              ...editingStoreItem,
+                              category: parentMain ? parentMain.id : catObj.id,
+                              subCategory: catObj.id,
+                              subSubCategory: undefined,
+                            });
+                          } else {
+                            setEditingStoreItem({
+                              ...editingStoreItem,
+                              category: catObj.id,
+                              subCategory: undefined,
+                              subSubCategory: undefined,
+                            });
+                          }
+                        }}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-medium"
                       >
-                        <option value="">-- Select Category --</option>
-                        {storeCategories.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {cleanCategoryLabel(c.label, c.id)}
-                          </option>
+                        <option value="">-- Select Category / Subcategory --</option>
+                        {buildCategoryTree(storeCategories).map((mainCat) => (
+                          <React.Fragment key={mainCat.id}>
+                            <option value={mainCat.id} className="font-bold">
+                              📁 {mainCat.label}
+                            </option>
+                            {mainCat.subcategories.map((subCat) => (
+                              <React.Fragment key={subCat.id}>
+                                <option value={subCat.id}>
+                                  &nbsp;&nbsp;📂 {subCat.label}
+                                </option>
+                                {subCat.subcategories.map((subSub) => (
+                                  <option key={subSub.id} value={subSub.id}>
+                                    &nbsp;&nbsp;&nbsp;&nbsp;📄 {subSub.label}
+                                  </option>
+                                ))}
+                              </React.Fragment>
+                            ))}
+                          </React.Fragment>
                         ))}
                       </select>
                     ) : (
                       <input
                         type="text"
                         required
-                        placeholder=""
+                        placeholder="Type category"
                         value={editingStoreItem.category}
                         onChange={(e) => setEditingStoreItem({ ...editingStoreItem, category: e.target.value })}
                         className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-medium"
@@ -811,9 +884,9 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                   </div>
                 </div>
 
-                {/* Price, Discount (%) & Stock Row */}
+                {/* Price, Discount (%), Reward Points & Stock Row */}
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-3.5 space-y-3">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
                     <div>
                       <label className="block text-xs font-bold text-slate-700 mb-1">Price (₹) *</label>
                       <input
@@ -837,6 +910,23 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                         value={discountPercentInput}
                         onChange={(e) => setDiscountPercentInput(e.target.value === '' ? '' : Math.min(99, Math.max(0, Number(e.target.value))))}
                         className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-mono font-medium"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-slate-700 mb-1">OhmVeda Points / Unit</label>
+                      <input
+                        type="number"
+                        min={0}
+                        placeholder="e.g. 5"
+                        value={editingStoreItem.rewardPoints !== undefined ? editingStoreItem.rewardPoints : ''}
+                        onChange={(e) =>
+                          setEditingStoreItem({
+                            ...editingStoreItem,
+                            rewardPoints: e.target.value === '' ? undefined : Math.max(0, parseInt(e.target.value) || 0),
+                          })
+                        }
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-purple-700 font-mono font-bold focus:outline-none focus:border-purple-500"
                       />
                     </div>
 
@@ -883,15 +973,161 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                   })()}
                 </div>
 
-                {/* SKU & Badge Tag Row */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* MOQ TIERED PRICING (BULK DISCOUNTS) */}
+                <div className="bg-purple-50/70 border border-purple-200 rounded-xl p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="text-xs font-bold text-purple-950 uppercase tracking-wider flex items-center gap-1.5">
+                        <DollarSign className="w-4 h-4 text-purple-600" />
+                        <span>MOQ Tiered Pricing (Bulk Discount)</span>
+                      </h4>
+                      <p className="text-[11px] text-purple-700">Set custom quantity ranges & unit prices for this component.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const currentTiers = editingStoreItem.moqTiers || [];
+                        const lastTier = currentTiers[currentTiers.length - 1];
+                        const newMin = lastTier ? (lastTier.maxQty ? lastTier.maxQty + 1 : lastTier.minQty + 50) : 1;
+                        const baseP = typeof basePriceInput === 'number' && basePriceInput > 0 ? basePriceInput : 45;
+                        const newTier = { minQty: newMin, maxQty: undefined, pricePerUnit: Math.max(1, Math.round(baseP * 0.9)) };
+                        setEditingStoreItem({
+                          ...editingStoreItem,
+                          moqTiers: [...currentTiers, newTier],
+                        });
+                      }}
+                      className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold rounded-lg shadow-xs flex items-center gap-1 cursor-pointer"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add MOQ Tier</span>
+                    </button>
+                  </div>
+
+                  <div>
+                    {(!editingStoreItem.moqTiers || editingStoreItem.moqTiers.length === 0) ? (
+                      <div className="p-3 bg-white rounded-lg border border-purple-100 text-center space-y-2">
+                        <p className="text-xs text-slate-500 italic">No custom MOQ tiers defined. Standard percentage tiers will apply.</p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const baseP = typeof basePriceInput === 'number' && basePriceInput > 0 ? basePriceInput : 45;
+                            setEditingStoreItem({
+                              ...editingStoreItem,
+                              moqTiers: [
+                                { minQty: 1, maxQty: 9, pricePerUnit: baseP },
+                                { minQty: 10, maxQty: 499, pricePerUnit: Number((baseP * 0.98).toFixed(2)) },
+                                { minQty: 500, maxQty: undefined, pricePerUnit: Number((baseP * 0.95).toFixed(2)) },
+                              ]
+                            });
+                          }}
+                          className="px-3 py-1 bg-purple-100 hover:bg-purple-200 text-purple-800 text-xs font-bold rounded-md cursor-pointer"
+                        >
+                          Initialize Default 3-Tier MOQ
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-12 gap-2 text-[10px] font-extrabold uppercase text-purple-900 px-2">
+                          <span className="col-span-3">Min Qty</span>
+                          <span className="col-span-3">Max Qty (Blank = +)</span>
+                          <span className="col-span-4">Price / Qty (₹)</span>
+                          <span className="col-span-2 text-right">Action</span>
+                        </div>
+                        {editingStoreItem.moqTiers.map((tier, idx) => (
+                          <div key={idx} className="grid grid-cols-12 gap-2 items-center bg-white p-2 rounded-lg border border-purple-150">
+                            <div className="col-span-3">
+                              <input
+                                type="number"
+                                min={1}
+                                value={tier.minQty}
+                                onChange={(e) => {
+                                  const updated = [...(editingStoreItem.moqTiers || [])];
+                                  updated[idx] = { ...updated[idx], minQty: Math.max(1, parseInt(e.target.value) || 1) };
+                                  setEditingStoreItem({ ...editingStoreItem, moqTiers: updated });
+                                }}
+                                className="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs font-mono font-bold"
+                              />
+                            </div>
+                            <div className="col-span-3">
+                              <input
+                                type="number"
+                                min={tier.minQty}
+                                placeholder="500+ (Unlimited)"
+                                value={tier.maxQty ?? ''}
+                                onChange={(e) => {
+                                  const updated = [...(editingStoreItem.moqTiers || [])];
+                                  const val = e.target.value === '' ? undefined : Math.max(tier.minQty, parseInt(e.target.value) || tier.minQty);
+                                  updated[idx] = { ...updated[idx], maxQty: val };
+                                  setEditingStoreItem({ ...editingStoreItem, moqTiers: updated });
+                                }}
+                                className="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs font-mono"
+                              />
+                            </div>
+                            <div className="col-span-4">
+                              <input
+                                type="number"
+                                step="0.01"
+                                min={0}
+                                value={tier.pricePerUnit}
+                                onChange={(e) => {
+                                  const updated = [...(editingStoreItem.moqTiers || [])];
+                                  updated[idx] = { ...updated[idx], pricePerUnit: Math.max(0, parseFloat(e.target.value) || 0) };
+                                  setEditingStoreItem({ ...editingStoreItem, moqTiers: updated });
+                                }}
+                                className="w-full bg-slate-50 border border-slate-200 rounded px-2 py-1 text-xs font-mono font-bold text-emerald-700"
+                              />
+                            </div>
+                            <div className="col-span-2 text-right">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = (editingStoreItem.moqTiers || []).filter((_, i) => i !== idx);
+                                  setEditingStoreItem({ ...editingStoreItem, moqTiers: updated });
+                                }}
+                                className="p-1 text-rose-500 hover:text-rose-700 hover:bg-rose-50 rounded cursor-pointer"
+                                title="Remove Tier"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* SKU, Manufacturer, MPN & Badge Tag Row */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 mb-1">SKU Code</label>
                     <input
                       type="text"
                       value={editingStoreItem.sku || ''}
                       onChange={(e) => setEditingStoreItem({ ...editingStoreItem, sku: e.target.value })}
-                      placeholder=""
+                      placeholder="e.g. MCU-ESP32-WROOM"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-mono"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Manufacturer / Brand</label>
+                    <input
+                      type="text"
+                      value={editingStoreItem.manufacturer || ''}
+                      onChange={(e) => setEditingStoreItem({ ...editingStoreItem, manufacturer: e.target.value })}
+                      placeholder="e.g. Espressif Systems"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Part Number (MPN)</label>
+                    <input
+                      type="text"
+                      value={editingStoreItem.mpn || ''}
+                      onChange={(e) => setEditingStoreItem({ ...editingStoreItem, mpn: e.target.value })}
+                      placeholder="e.g. ESP32-WROOM-32E"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-mono"
                     />
                   </div>
@@ -902,40 +1138,233 @@ export const StoreManager: React.FC<StoreManagerProps> = ({
                       type="text"
                       value={editingStoreItem.badge || ''}
                       onChange={(e) => setEditingStoreItem({ ...editingStoreItem, badge: e.target.value })}
-                      placeholder=""
+                      placeholder="e.g. Popular, Hot"
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
                     />
                   </div>
                 </div>
 
                 {/* Description */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">Short Summary / Description</label>
-                  <textarea
-                    rows={2}
-                    value={editingStoreItem.shortDesc || ''}
-                    onChange={(e) => setEditingStoreItem({ ...editingStoreItem, shortDesc: e.target.value })}
-                    placeholder=""
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Short Summary</label>
+                    <textarea
+                      rows={2}
+                      value={editingStoreItem.shortDesc || ''}
+                      onChange={(e) => setEditingStoreItem({ ...editingStoreItem, shortDesc: e.target.value })}
+                      placeholder="Brief component pitch..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Full Technical Overview / Description</label>
+                    <textarea
+                      rows={2}
+                      value={editingStoreItem.fullDesc || ''}
+                      onChange={(e) => setEditingStoreItem({ ...editingStoreItem, fullDesc: e.target.value })}
+                      placeholder="Detailed architectural and pinout breakdown..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
                 </div>
 
-                {/* Specifications */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Technical Specifications & Key Features (Enter 1 per line)
-                  </label>
-                  <textarea
-                    rows={4}
-                    value={specsInputText}
-                    onChange={(e) => setSpecsInputText(e.target.value)}
-                    placeholder=""
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-emerald-500 font-mono"
-                  />
-                  <p className="text-[10px] text-slate-400 mt-0.5">
-                    Write each specification or feature on a separate line.
-                  </p>
+                {/* SEO Metadata */}
+                <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-3">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider">SEO Metadata & Links</h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">SEO Title</label>
+                      <input
+                        type="text"
+                        value={editingStoreItem.seoTitle || ''}
+                        onChange={(e) => setEditingStoreItem({ ...editingStoreItem, seoTitle: e.target.value })}
+                        placeholder="e.g. STM32F407VGT6 Microcontroller"
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">SEO Description</label>
+                      <input
+                        type="text"
+                        value={editingStoreItem.seoDescription || ''}
+                        onChange={(e) => setEditingStoreItem({ ...editingStoreItem, seoDescription: e.target.value })}
+                        placeholder="Meta description for search engines..."
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">SEO Keywords</label>
+                      <input
+                        type="text"
+                        value={editingStoreItem.seoKeywords || ''}
+                        onChange={(e) => setEditingStoreItem({ ...editingStoreItem, seoKeywords: e.target.value })}
+                        placeholder="mcu, stm32, arm cortex-m4"
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">Datasheet PDF Direct URL</label>
+                      <input
+                        type="url"
+                        value={editingStoreItem.datasheetUrl || ''}
+                        onChange={(e) => setEditingStoreItem({ ...editingStoreItem, datasheetUrl: e.target.value })}
+                        placeholder="https://example.com/datasheet.pdf"
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-mono focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-[11px] font-bold text-slate-700 mb-1">User Manual Direct URL</label>
+                      <input
+                        type="url"
+                        value={editingStoreItem.userManualUrl || ''}
+                        onChange={(e) => setEditingStoreItem({ ...editingStoreItem, userManualUrl: e.target.value })}
+                        placeholder="https://example.com/manual.pdf"
+                        className="w-full bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-mono focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
                 </div>
+
+                {/* STEP 2 – DYNAMIC SPECIFICATIONS ENGINE */}
+                {(() => {
+                  const targetCatId = editingStoreItem.subSubCategory || editingStoreItem.subCategory || editingStoreItem.category;
+                  const allTemplates = getStoredSpecTemplates();
+                  const allSpecs = getStoredSpecifications();
+                  const allGroups = getStoredSpecGroups();
+
+                  // Find template assigned to cat, or fallback to first template
+                  let matchedTemplate = allTemplates.find(t => t.categoryIds.includes(targetCatId));
+                  if (!matchedTemplate) {
+                    matchedTemplate = allTemplates[0];
+                  }
+
+                  const activeSpecDefs: Specification[] = matchedTemplate
+                    ? matchedTemplate.specifications
+                        .map(ts => allSpecs.find(s => s.id === ts.specId))
+                        .filter((s): s is Specification => s !== undefined)
+                    : allSpecs;
+
+                  const currentSpecs = editingStoreItem.specifications || {};
+
+                  const updateSpecValue = (code: string, value: any, unit?: string) => {
+                    const updated = {
+                      ...currentSpecs,
+                      [code]: {
+                        value,
+                        unit: unit !== undefined ? unit : currentSpecs[code]?.unit,
+                      },
+                    };
+                    setEditingStoreItem({ ...editingStoreItem, specifications: updated });
+                  };
+
+                  return (
+                    <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-4 shadow-xs">
+                      <div className="flex flex-wrap items-center justify-between border-b border-slate-200 pb-2.5 gap-2">
+                        <div>
+                          <h4 className="text-xs font-extrabold text-slate-900 flex items-center gap-2">
+                            <Cpu className="w-4 h-4 text-blue-600" />
+                            <span>Step 2 – Dynamic Technical Specifications</span>
+                          </h4>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Template applied: <span className="font-bold text-blue-700">{matchedTemplate ? matchedTemplate.name : 'Default'}</span> ({activeSpecDefs.length} parameters)
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Group specs by SpecGroup */}
+                      <div className="space-y-4">
+                        {allGroups.map((group) => {
+                          const groupSpecs = activeSpecDefs.filter(s => s.groupId === group.id);
+                          if (groupSpecs.length === 0) return null;
+
+                          return (
+                            <div key={group.id} className="bg-white border border-slate-200 rounded-xl p-3.5 space-y-3">
+                              <h5 className="text-[11px] font-bold text-slate-700 uppercase tracking-wider border-b border-slate-100 pb-1.5 flex items-center justify-between">
+                                <span>{group.name}</span>
+                                <span className="text-[10px] text-slate-400 font-mono normal-case">{groupSpecs.length} fields</span>
+                              </h5>
+
+                              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {groupSpecs.map((spec) => {
+                                  const specVal = currentSpecs[spec.code]?.value ?? '';
+                                  const specUnit = currentSpecs[spec.code]?.unit ?? spec.defaultUnit ?? (spec.allowedUnits ? spec.allowedUnits[0] : '');
+
+                                  return (
+                                    <div key={spec.id} className="space-y-1">
+                                      <label className="block text-[11px] font-bold text-slate-800 flex items-center justify-between">
+                                        <span>{spec.name}</span>
+                                        {spec.isRequired && <span className="text-red-500 text-[10px]">*</span>}
+                                      </label>
+
+                                      <div className="flex items-center gap-1.5">
+                                        {spec.fieldType === 'Dropdown' && spec.options ? (
+                                          <select
+                                            value={specVal}
+                                            onChange={(e) => updateSpecValue(spec.code, e.target.value, specUnit)}
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-medium focus:outline-none focus:border-blue-500"
+                                          >
+                                            <option value="">-- Select --</option>
+                                            {spec.options.map(opt => (
+                                              <option key={opt} value={opt}>{opt}</option>
+                                            ))}
+                                          </select>
+                                        ) : spec.fieldType === 'Yes / No' ? (
+                                          <select
+                                            value={specVal}
+                                            onChange={(e) => updateSpecValue(spec.code, e.target.value, specUnit)}
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-medium focus:outline-none focus:border-blue-500"
+                                          >
+                                            <option value="">-- Select --</option>
+                                            <option value="Yes">Yes</option>
+                                            <option value="No">No</option>
+                                          </select>
+                                        ) : ['Number', 'Decimal'].includes(spec.fieldType) ? (
+                                          <input
+                                            type="number"
+                                            step={spec.fieldType === 'Decimal' ? 'any' : '1'}
+                                            value={specVal}
+                                            onChange={(e) => updateSpecValue(spec.code, e.target.value === '' ? '' : Number(e.target.value), specUnit)}
+                                            placeholder=""
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 font-mono focus:outline-none focus:border-blue-500"
+                                          />
+                                        ) : (
+                                          <input
+                                            type="text"
+                                            value={specVal}
+                                            onChange={(e) => updateSpecValue(spec.code, e.target.value, specUnit)}
+                                            placeholder=""
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-blue-500"
+                                          />
+                                        )}
+
+                                        {/* UNIT SELECTOR */}
+                                        {spec.allowedUnits && spec.allowedUnits.length > 0 && (
+                                          <select
+                                            value={specUnit}
+                                            onChange={(e) => updateSpecValue(spec.code, specVal, e.target.value)}
+                                            className="bg-slate-100 border border-slate-200 rounded-lg px-2 py-1.5 text-xs font-mono font-bold text-slate-700 focus:outline-none"
+                                          >
+                                            {spec.allowedUnits.map(u => (
+                                              <option key={u} value={u}>{u}</option>
+                                            ))}
+                                          </select>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Technical Documents Upload / Linker */}
                 <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">

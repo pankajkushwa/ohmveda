@@ -1112,17 +1112,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                       <Plus className="w-4 h-4" />
                       <span>Add Product</span>
                     </button>
-                    <button
-                      onClick={() => {
-                        onUpdateProducts(INITIAL_TURNKEY_PRODUCTS);
-                        addAdminLog({ action: 'RESET', target: 'PRODUCT', title: 'Loaded Sample Products', details: 'Pre-populated initial turnkey systems dataset.' });
-                        refreshLogs();
-                      }}
-                      className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer border border-slate-200"
-                    >
-                      <RefreshCw className="w-3.5 h-3.5 text-blue-600" />
-                      <span>Load Sample Products</span>
-                    </button>
                   </div>
                 </div>
               )}
@@ -1240,7 +1229,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <ShoppingBag className="w-10 h-10 text-slate-300 mx-auto" />
                 <p className="text-sm font-bold text-slate-700">No electronics store components found.</p>
                 <p className="text-xs text-slate-400 max-w-md mx-auto">
-                  You can add new components manually using the button above, or click below to load initial sample components.
+                  You can add new components manually using the button above.
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                   <button
@@ -1249,17 +1238,6 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   >
                     <Plus className="w-4 h-4" />
                     <span>Add New Component</span>
-                  </button>
-                  <button
-                    onClick={() => {
-                      onUpdateStoreItems(STORE_PRODUCTS);
-                      addAdminLog({ action: 'RESET', target: 'STORE', title: 'Loaded Sample Store Data', details: 'Pre-populated initial electronics store dataset.' });
-                      refreshLogs();
-                    }}
-                    className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1.5 cursor-pointer border border-slate-200"
-                  >
-                    <RefreshCw className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Load Sample Store Data</span>
                   </button>
                 </div>
               </div>

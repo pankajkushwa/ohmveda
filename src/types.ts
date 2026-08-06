@@ -9,6 +9,8 @@ export interface StoreCategory {
   label: string;
   icon?: string;
   description?: string;
+  parentId?: string | null;
+  level?: 0 | 1 | 2;
 }
 
 export interface TechnicalDocument {
@@ -45,13 +47,86 @@ export interface StoreReviewItem {
   verifiedPurchase?: boolean;
 }
 
+export type SpecFieldType = 
+  | 'Text' 
+  | 'Textarea' 
+  | 'Number' 
+  | 'Decimal' 
+  | 'Dropdown' 
+  | 'Multi Select' 
+  | 'Yes / No' 
+  | 'Checkbox' 
+  | 'Radio Button' 
+  | 'Date' 
+  | 'URL' 
+  | 'File Upload' 
+  | 'Numeric Range' 
+  | 'Color';
+
+export interface SpecGroup {
+  id: string;
+  name: string;
+  description?: string;
+  order: number;
+}
+
+export interface Specification {
+  id: string;
+  groupId: string;
+  name: string;
+  code: string; // unique key e.g. "bit_width", "operating_voltage"
+  fieldType: SpecFieldType;
+  options?: string[]; // for Dropdown, Multi Select, Radio Button
+  defaultUnit?: string;
+  allowedUnits?: string[]; // e.g. ['MHz', 'GHz'], ['V', 'mV'], ['Ω', 'kΩ', 'MΩ']
+  isRequired?: boolean;
+  isFilterable?: boolean;
+  isSearchable?: boolean;
+  isSortable?: boolean;
+  isCompareEnabled?: boolean;
+  showOnProductCard?: boolean;
+  showOnProductDetails?: boolean;
+  order?: number;
+  description?: string;
+}
+
+export interface SpecTemplateSpecification {
+  specId: string;
+  isRequired?: boolean;
+  isFilterable?: boolean;
+  order?: number;
+}
+
+export interface SpecTemplate {
+  id: string;
+  name: string; // e.g. "Microcontrollers", "Resistors", "Sensors"
+  description?: string;
+  categoryIds: string[]; // StoreCategory IDs mapped to this template
+  specifications: SpecTemplateSpecification[];
+}
+
+export interface StoreItemSpecValue {
+  value: any;
+  unit?: string;
+}
+
+export interface MoqTier {
+  minQty: number;
+  maxQty?: number;
+  pricePerUnit: number;
+}
+
 export interface StoreItem {
   id: string;
   name: string;
   category: string;
+  subCategory?: string;
+  subSubCategory?: string;
   price: number; // in INR / USD currency standard
   originalPrice?: number;
   discountPercent?: number;
+  rewardPoints?: number; // OhmVeda Reward Points per unit purchased
+  moqTiers?: MoqTier[]; // Dynamic MOQ discount tiers managed by admin
   stock: number;
   inStock: boolean;
   rating: number;
@@ -59,10 +134,21 @@ export interface StoreItem {
   image: string;
   images?: string[];
   shortDesc: string;
-  specs: string[];
+  fullDesc?: string;
+  specs: string[]; // Legacy specs strings array for fallback
+  specifications?: Record<string, StoreItemSpecValue>; // Keyed by specId or code
   sku: string;
+  mpn?: string; // Manufacturer Part Number
+  manufacturer?: string; // Brand / Manufacturer
   badge?: string;
   documents?: TechnicalDocument[];
+  datasheetUrl?: string;
+  rohsCompliant?: boolean;
+  userManualUrl?: string;
+  additionalDocsUrls?: string[];
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string;
 }
 
 export interface CartItem {
@@ -131,6 +217,9 @@ export interface UserOrder {
   shippingFee: number;
   gstAmount: number;
   totalAmount: number;
+  pointsEarned?: number;
+  pointsRedeemed?: number;
+  pointsDiscountRs?: number;
   shippingAddress: UserAddress;
   paymentMethod: 'UPI' | 'CARD' | 'NET_BANKING' | 'COD' | 'GST_PO';
   paymentStatus: 'PAID' | 'PENDING' | 'COD_CONFIRMED' | 'Refund Pending' | 'Refund Completed' | 'Cancelled';
@@ -141,6 +230,19 @@ export interface UserOrder {
   adminDispatchNotes?: string;
   createdAt: string;
   estimatedDelivery: string;
+}
+
+export interface RewardPointTransaction {
+  id: string;
+  userId?: string;
+  userEmail: string;
+  type: 'EARNED' | 'REDEEMED' | 'WELCOME_BONUS' | 'ADMIN_ADJUSTMENT' | 'BONUS' | 'REFUND';
+  points: number;
+  amountInRs?: number;
+  description: string;
+  date?: string;
+  createdAt?: string;
+  orderId?: string;
 }
 
 export interface ServiceCategory {
